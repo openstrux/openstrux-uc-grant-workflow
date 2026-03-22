@@ -1,0 +1,12 @@
+{
+  "paths": ["direct", "openstrux"],
+  "specs": [
+    "specs/domain-model.md",
+    "specs/workflow-states.md",
+    "specs/access-policies.md",
+    "specs/mvp-profile.md"
+  ],
+  "tasks": "openspec/changes/backend-generation/tasks.md",
+  "testUnit": "pnpm test:unit",
+  "testIntegration": "pnpm test:integration"
+}

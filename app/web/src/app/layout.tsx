@@ -19,7 +19,6 @@ export default function RootLayout({
           <Link href="/">Dashboard</Link>
           <Link href="/submit">Submit</Link>
           <Link href="/admin">Admin</Link>
-          <Link href="/results">Results</Link>
         </nav>
         {children}
         <footer>

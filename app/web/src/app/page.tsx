@@ -14,9 +14,6 @@ export default function Home() {
         <Link href="/admin" className="btn secondary">
           Admin dashboard
         </Link>
-        <Link href="/results" className="btn secondary">
-          View benchmark results
-        </Link>
       </div>
 
       <h2>Phases (v0.6.0)</h2>

@@ -40,5 +40,6 @@ prisma/
 
 ## Output location
 
-- **Direct path**: files are written directly to the repository tree (service layer + route handlers) in `output/direct/`
-- **Openstrux path**: files emitted by `strux build` into `.openstrux/build/`, imported via `@openstrux/build` path alias per ADR-019
+Write all files at their natural in-tree paths (`prisma/schema.prisma`, `packages/domain/src/schemas/index.ts`, etc.). Existing stubs are replaced in place.
+
+For the Openstrux path: `strux build` emits compiled output to `.openstrux/build/`. The `@openstrux/build` path alias in `tsconfig.json` resolves those files at compile time.
