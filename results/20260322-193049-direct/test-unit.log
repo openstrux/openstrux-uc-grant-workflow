@@ -1,0 +1,418 @@
+
+> openstrux-uc-grant-workflow@0.1.0 test:unit /home/homofaber/proj/openstrux-uc-grant-workflow-bench-20260322-193049-direct
+> vitest run tests/unit -- --reporter=json --outputFile=/home/homofaber/proj/openstrux-uc-grant-workflow/results/20260322-193049-direct/test-unit.json
+
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+ RUN  v1.6.1 /home/homofaber/proj/openstrux-uc-grant-workflow-bench-20260322-193049-direct
+
+ ❯ tests/unit/workflowTransitions.test.ts  (0 test)
+ ❯ tests/unit/blindedPacket.test.ts  (0 test)
+ ❯ tests/unit/eligibilityFixtures.test.ts  (3 tests | 3 failed) 7ms
+   ❯ tests/unit/eligibilityFixtures.test.ts > evaluateEligibility (fixture-driven) > fixture: all-pass → eligible
+     → Cannot read properties of undefined (reading 'includes')
+   ❯ tests/unit/eligibilityFixtures.test.ts > evaluateEligibility (fixture-driven) > fixture: language-fail → ineligible
+     → Cannot read properties of undefined (reading 'includes')
+   ❯ tests/unit/eligibilityFixtures.test.ts > evaluateEligibility (fixture-driven) > fixture: multiple-fail → ineligible
+     → Cannot read properties of undefined (reading 'includes')
+ ❯ tests/unit/eligibility.test.ts  (10 tests | 10 failed) 10ms
+   ❯ tests/unit/eligibility.test.ts > evaluateEligibility > returns eligible when all active rules pass
+     → Cannot read properties of undefined (reading 'includes')
+   ❯ tests/unit/eligibility.test.ts > evaluateEligibility > returns ineligible when submittedInEnglish is false
+     → Cannot read properties of undefined (reading 'includes')
+   ❯ tests/unit/eligibility.test.ts > evaluateEligibility > returns ineligible when alignedWithCall is false
+     → Cannot read properties of undefined (reading 'includes')
+   ❯ tests/unit/eligibility.test.ts > evaluateEligibility > returns ineligible when primaryObjectiveIsRd is false
+     → Cannot read properties of undefined (reading 'includes')
+   ❯ tests/unit/eligibility.test.ts > evaluateEligibility > returns ineligible when meetsEuropeanDimension is false
+     → Cannot read properties of undefined (reading 'includes')
+   ❯ tests/unit/eligibility.test.ts > evaluateEligibility > accepts not_applicable for meetsEuropeanDimension
+     → Cannot read properties of undefined (reading 'includes')
+   ❯ tests/unit/eligibility.test.ts > evaluateEligibility > returns ineligible when budget exceeds call limit
+     → Cannot read properties of undefined (reading 'includes')
+   ❯ tests/unit/eligibility.test.ts > evaluateEligibility > collects multiple failure reasons
+     → Cannot read properties of undefined (reading 'includes')
+   ❯ tests/unit/eligibility.test.ts > evaluateEligibility > respects active rule set — inactive rules are not evaluated
+     → Cannot read properties of undefined (reading 'includes')
+   ❯ tests/unit/eligibility.test.ts > evaluateEligibility > records exact inputs in result
+     → Cannot read properties of undefined (reading 'includes')
+ ❯ tests/unit/accessPolicy.test.ts  (10 tests | 7 failed) 10ms
+   ❯ tests/unit/accessPolicy.test.ts > checkAccess > reviewer cannot access ApplicantIdentity > denies reviewer access to ApplicantIdentity read
+     → Cannot read properties of undefined (reading 'type')
+   ❯ tests/unit/accessPolicy.test.ts > checkAccess > reviewer cannot access ApplicantIdentity > denies reviewer access to ApplicantIdentity write
+     → Cannot read properties of undefined (reading 'type')
+   ❯ tests/unit/accessPolicy.test.ts > checkAccess > applicant has limited access > allows applicant read on own Submission
+     → Cannot read properties of undefined (reading 'applicantAlias')
+   ❯ tests/unit/accessPolicy.test.ts > checkAccess > applicant has limited access > denies applicant read on someone else's Submission
+     → Cannot read properties of undefined (reading 'applicantAlias')
+   ❯ tests/unit/accessPolicy.test.ts > checkAccess > applicant has limited access > denies applicant write on EligibilityRecord
+     → Cannot read properties of undefined (reading 'applicantAlias')
+   ❯ tests/unit/accessPolicy.test.ts > checkAccess > reviewer can access assigned blinded packets > allows reviewer read on assigned BlindedPacket
+     → Cannot read properties of undefined (reading 'type')
+   ❯ tests/unit/accessPolicy.test.ts > checkAccess > reviewer can access assigned blinded packets > denies reviewer read on unassigned BlindedPacket
+     → Cannot read properties of undefined (reading 'type')
+ ❯ tests/unit/domainEntities.test.ts  (9 tests | 5 failed) 17ms
+   ❯ tests/unit/domainEntities.test.ts > SubmissionSchema > accepts valid submission
+     → expected false to be true // Object.is equality
+   ❯ tests/unit/domainEntities.test.ts > ProposalVersionSchema > accepts valid proposal version
+     → expected false to be true // Object.is equality
+   ❯ tests/unit/domainEntities.test.ts > EligibilityInputsSchema > accepts valid inputs
+     → expected false to be true // Object.is equality
+   ❯ tests/unit/domainEntities.test.ts > EligibilityInputsSchema > accepts not_applicable for meetsEuropeanDimension
+     → expected false to be true // Object.is equality
+   ❯ tests/unit/domainEntities.test.ts > AuditEventSchema > accepts valid audit event
+     → expected false to be true // Object.is equality
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/unit/blindedPacket.test.ts [ tests/unit/blindedPacket.test.ts ]
+Error: Failed to load url ../../packages/policies/src/workflow/createBlindedPacket (resolved id: ../../packages/policies/src/workflow/createBlindedPacket) in /home/homofaber/proj/openstrux-uc-grant-workflow-bench-20260322-193049-direct/tests/unit/blindedPacket.test.ts. Does the file exist?
+ ❯ loadAndTransform node_modules/.pnpm/vite@5.4.21_@types+node@20.19.37/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51969:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/27]⎯
+
+ FAIL  tests/unit/workflowTransitions.test.ts [ tests/unit/workflowTransitions.test.ts ]
+Error: Failed to load url ../../packages/policies/src/workflow/transitions (resolved id: ../../packages/policies/src/workflow/transitions) in /home/homofaber/proj/openstrux-uc-grant-workflow-bench-20260322-193049-direct/tests/unit/workflowTransitions.test.ts. Does the file exist?
+ ❯ loadAndTransform node_modules/.pnpm/vite@5.4.21_@types+node@20.19.37/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51969:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/27]⎯
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 25 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/unit/accessPolicy.test.ts > checkAccess > reviewer cannot access ApplicantIdentity > denies reviewer access to ApplicantIdentity read
+TypeError: Cannot read properties of undefined (reading 'type')
+ ❯ Module.checkAccess packages/policies/src/access/checkAccess.ts:38:49
+     36| 
+     37|   // HARD DENY: reviewer may never access ApplicantIdentity (logged by…
+     38|   if (principal.role === "reviewer" && resource.type === "ApplicantIde…
+       |                                                 ^
+     39|     return {
+     40|       allowed: false,
+ ❯ tests/unit/accessPolicy.test.ts:13:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/27]⎯
+
+ FAIL  tests/unit/accessPolicy.test.ts > checkAccess > reviewer cannot access ApplicantIdentity > denies reviewer access to ApplicantIdentity write
+TypeError: Cannot read properties of undefined (reading 'type')
+ ❯ Module.checkAccess packages/policies/src/access/checkAccess.ts:38:49
+     36| 
+     37|   // HARD DENY: reviewer may never access ApplicantIdentity (logged by…
+     38|   if (principal.role === "reviewer" && resource.type === "ApplicantIde…
+       |                                                 ^
+     39|     return {
+     40|       allowed: false,
+ ❯ tests/unit/accessPolicy.test.ts:23:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/27]⎯
+
+ FAIL  tests/unit/accessPolicy.test.ts > checkAccess > applicant has limited access > allows applicant read on own Submission
+TypeError: Cannot read properties of undefined (reading 'applicantAlias')
+ ❯ Module.checkAccess packages/policies/src/access/checkAccess.ts:71:18
+     69|       // Must be own submission
+     70|       if (
+     71|         resource.applicantAlias !== undefined &&
+       |                  ^
+     72|         resource.applicantAlias !== principal.alias
+     73|       ) {
+ ❯ tests/unit/accessPolicy.test.ts:51:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/27]⎯
+
+ FAIL  tests/unit/accessPolicy.test.ts > checkAccess > applicant has limited access > denies applicant read on someone else's Submission
+TypeError: Cannot read properties of undefined (reading 'applicantAlias')
+ ❯ Module.checkAccess packages/policies/src/access/checkAccess.ts:71:18
+     69|       // Must be own submission
+     70|       if (
+     71|         resource.applicantAlias !== undefined &&
+       |                  ^
+     72|         resource.applicantAlias !== principal.alias
+     73|       ) {
+ ❯ tests/unit/accessPolicy.test.ts:61:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/27]⎯
+
+ FAIL  tests/unit/accessPolicy.test.ts > checkAccess > applicant has limited access > denies applicant write on EligibilityRecord
+TypeError: Cannot read properties of undefined (reading 'applicantAlias')
+ ❯ Module.checkAccess packages/policies/src/access/checkAccess.ts:71:18
+     69|       // Must be own submission
+     70|       if (
+     71|         resource.applicantAlias !== undefined &&
+       |                  ^
+     72|         resource.applicantAlias !== principal.alias
+     73|       ) {
+ ❯ tests/unit/accessPolicy.test.ts:71:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/27]⎯
+
+ FAIL  tests/unit/accessPolicy.test.ts > checkAccess > reviewer can access assigned blinded packets > allows reviewer read on assigned BlindedPacket
+TypeError: Cannot read properties of undefined (reading 'type')
+ ❯ Module.checkAccess packages/policies/src/access/checkAccess.ts:38:49
+     36| 
+     37|   // HARD DENY: reviewer may never access ApplicantIdentity (logged by…
+     38|   if (principal.role === "reviewer" && resource.type === "ApplicantIde…
+       |                                                 ^
+     39|     return {
+     40|       allowed: false,
+ ❯ tests/unit/accessPolicy.test.ts:82:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/27]⎯
+
+ FAIL  tests/unit/accessPolicy.test.ts > checkAccess > reviewer can access assigned blinded packets > denies reviewer read on unassigned BlindedPacket
+TypeError: Cannot read properties of undefined (reading 'type')
+ ❯ Module.checkAccess packages/policies/src/access/checkAccess.ts:38:49
+     36| 
+     37|   // HARD DENY: reviewer may never access ApplicantIdentity (logged by…
+     38|   if (principal.role === "reviewer" && resource.type === "ApplicantIde…
+       |                                                 ^
+     39|     return {
+     40|       allowed: false,
+ ❯ tests/unit/accessPolicy.test.ts:92:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/27]⎯
+
+ FAIL  tests/unit/domainEntities.test.ts > SubmissionSchema > accepts valid submission
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ tests/unit/domainEntities.test.ts:25:28
+     23|       submittedAt: new Date().toISOString(),
+     24|     });
+     25|     expect(result.success).toBe(true);
+       |                            ^
+     26|   });
+     27| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/27]⎯
+
+ FAIL  tests/unit/domainEntities.test.ts > ProposalVersionSchema > accepts valid proposal version
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ tests/unit/domainEntities.test.ts:63:28
+     61|       tasksBreakdown: "T1: Implementation — 3 months.",
+     62|     });
+     63|     expect(result.success).toBe(true);
+       |                            ^
+     64|   });
+     65| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/27]⎯
+
+ FAIL  tests/unit/domainEntities.test.ts > EligibilityInputsSchema > accepts valid inputs
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ tests/unit/domainEntities.test.ts:92:28
+     90|       firstTimeApplicantInProgramme: true,
+     91|     });
+     92|     expect(result.success).toBe(true);
+       |                            ^
+     93|   });
+     94| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/27]⎯
+
+ FAIL  tests/unit/domainEntities.test.ts > EligibilityInputsSchema > accepts not_applicable for meetsEuropeanDimension
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ tests/unit/domainEntities.test.ts:104:28
+    102|       firstTimeApplicantInProgramme: false,
+    103|     });
+    104|     expect(result.success).toBe(true);
+       |                            ^
+    105|   });
+    106| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/27]⎯
+
+ FAIL  tests/unit/domainEntities.test.ts > AuditEventSchema > accepts valid audit event
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ tests/unit/domainEntities.test.ts:131:28
+    129|       timestamp: new Date().toISOString(),
+    130|     });
+    131|     expect(result.success).toBe(true);
+       |                            ^
+    132|   });
+    133| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/27]⎯
+
+ FAIL  tests/unit/eligibility.test.ts > evaluateEligibility > returns eligible when all active rules pass
+TypeError: Cannot read properties of undefined (reading 'includes')
+ ❯ Module.evaluateEligibility packages/policies/src/eligibility/evaluateEligibility.ts:44:20
+     42|   const activeChecks = ruleSet.activeChecks;
+     43| 
+     44|   if (activeChecks.includes("submittedInEnglish") && !inputs.submitted…
+       |                    ^
+     45|     failures.push("Proposal must be submitted in English.");
+     46|   }
+ ❯ tests/unit/eligibility.test.ts:31:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/27]⎯
+
+ FAIL  tests/unit/eligibility.test.ts > evaluateEligibility > returns ineligible when submittedInEnglish is false
+TypeError: Cannot read properties of undefined (reading 'includes')
+ ❯ Module.evaluateEligibility packages/policies/src/eligibility/evaluateEligibility.ts:44:20
+     42|   const activeChecks = ruleSet.activeChecks;
+     43| 
+     44|   if (activeChecks.includes("submittedInEnglish") && !inputs.submitted…
+       |                    ^
+     45|     failures.push("Proposal must be submitted in English.");
+     46|   }
+ ❯ tests/unit/eligibility.test.ts:38:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/27]⎯
+
+ FAIL  tests/unit/eligibility.test.ts > evaluateEligibility > returns ineligible when alignedWithCall is false
+TypeError: Cannot read properties of undefined (reading 'includes')
+ ❯ Module.evaluateEligibility packages/policies/src/eligibility/evaluateEligibility.ts:44:20
+     42|   const activeChecks = ruleSet.activeChecks;
+     43| 
+     44|   if (activeChecks.includes("submittedInEnglish") && !inputs.submitted…
+       |                    ^
+     45|     failures.push("Proposal must be submitted in English.");
+     46|   }
+ ❯ tests/unit/eligibility.test.ts:45:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/27]⎯
+
+ FAIL  tests/unit/eligibility.test.ts > evaluateEligibility > returns ineligible when primaryObjectiveIsRd is false
+TypeError: Cannot read properties of undefined (reading 'includes')
+ ❯ Module.evaluateEligibility packages/policies/src/eligibility/evaluateEligibility.ts:44:20
+     42|   const activeChecks = ruleSet.activeChecks;
+     43| 
+     44|   if (activeChecks.includes("submittedInEnglish") && !inputs.submitted…
+       |                    ^
+     45|     failures.push("Proposal must be submitted in English.");
+     46|   }
+ ❯ tests/unit/eligibility.test.ts:52:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/27]⎯
+
+ FAIL  tests/unit/eligibility.test.ts > evaluateEligibility > returns ineligible when meetsEuropeanDimension is false
+TypeError: Cannot read properties of undefined (reading 'includes')
+ ❯ Module.evaluateEligibility packages/policies/src/eligibility/evaluateEligibility.ts:44:20
+     42|   const activeChecks = ruleSet.activeChecks;
+     43| 
+     44|   if (activeChecks.includes("submittedInEnglish") && !inputs.submitted…
+       |                    ^
+     45|     failures.push("Proposal must be submitted in English.");
+     46|   }
+ ❯ tests/unit/eligibility.test.ts:59:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/27]⎯
+
+ FAIL  tests/unit/eligibility.test.ts > evaluateEligibility > accepts not_applicable for meetsEuropeanDimension
+TypeError: Cannot read properties of undefined (reading 'includes')
+ ❯ Module.evaluateEligibility packages/policies/src/eligibility/evaluateEligibility.ts:44:20
+     42|   const activeChecks = ruleSet.activeChecks;
+     43| 
+     44|   if (activeChecks.includes("submittedInEnglish") && !inputs.submitted…
+       |                    ^
+     45|     failures.push("Proposal must be submitted in English.");
+     46|   }
+ ❯ tests/unit/eligibility.test.ts:66:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/27]⎯
+
+ FAIL  tests/unit/eligibility.test.ts > evaluateEligibility > returns ineligible when budget exceeds call limit
+TypeError: Cannot read properties of undefined (reading 'includes')
+ ❯ Module.evaluateEligibility packages/policies/src/eligibility/evaluateEligibility.ts:44:20
+     42|   const activeChecks = ruleSet.activeChecks;
+     43| 
+     44|   if (activeChecks.includes("submittedInEnglish") && !inputs.submitted…
+       |                    ^
+     45|     failures.push("Proposal must be submitted in English.");
+     46|   }
+ ❯ tests/unit/eligibility.test.ts:72:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/27]⎯
+
+ FAIL  tests/unit/eligibility.test.ts > evaluateEligibility > collects multiple failure reasons
+TypeError: Cannot read properties of undefined (reading 'includes')
+ ❯ Module.evaluateEligibility packages/policies/src/eligibility/evaluateEligibility.ts:44:20
+     42|   const activeChecks = ruleSet.activeChecks;
+     43| 
+     44|   if (activeChecks.includes("submittedInEnglish") && !inputs.submitted…
+       |                    ^
+     45|     failures.push("Proposal must be submitted in English.");
+     46|   }
+ ❯ tests/unit/eligibility.test.ts:83:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/27]⎯
+
+ FAIL  tests/unit/eligibility.test.ts > evaluateEligibility > respects active rule set — inactive rules are not evaluated
+TypeError: Cannot read properties of undefined (reading 'includes')
+ ❯ Module.evaluateEligibility packages/policies/src/eligibility/evaluateEligibility.ts:44:20
+     42|   const activeChecks = ruleSet.activeChecks;
+     43| 
+     44|   if (activeChecks.includes("submittedInEnglish") && !inputs.submitted…
+       |                    ^
+     45|     failures.push("Proposal must be submitted in English.");
+     46|   }
+ ❯ tests/unit/eligibility.test.ts:94:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/27]⎯
+
+ FAIL  tests/unit/eligibility.test.ts > evaluateEligibility > records exact inputs in result
+TypeError: Cannot read properties of undefined (reading 'includes')
+ ❯ Module.evaluateEligibility packages/policies/src/eligibility/evaluateEligibility.ts:44:20
+     42|   const activeChecks = ruleSet.activeChecks;
+     43| 
+     44|   if (activeChecks.includes("submittedInEnglish") && !inputs.submitted…
+       |                    ^
+     45|     failures.push("Proposal must be submitted in English.");
+     46|   }
+ ❯ tests/unit/eligibility.test.ts:100:20
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[24/27]⎯
+
+ FAIL  tests/unit/eligibilityFixtures.test.ts > evaluateEligibility (fixture-driven) > fixture: all-pass → eligible
+ FAIL  tests/unit/eligibilityFixtures.test.ts > evaluateEligibility (fixture-driven) > fixture: language-fail → ineligible
+ FAIL  tests/unit/eligibilityFixtures.test.ts > evaluateEligibility (fixture-driven) > fixture: multiple-fail → ineligible
+TypeError: Cannot read properties of undefined (reading 'includes')
+ ❯ Module.evaluateEligibility packages/policies/src/eligibility/evaluateEligibility.ts:44:20
+     42|   const activeChecks = ruleSet.activeChecks;
+     43| 
+     44|   if (activeChecks.includes("submittedInEnglish") && !inputs.submitted…
+       |                    ^
+     45|     failures.push("Proposal must be submitted in English.");
+     46|   }
+ ❯ tests/unit/eligibilityFixtures.test.ts:33:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[25/27]⎯
+
+ Test Files  6 failed (6)
+      Tests  25 failed | 7 passed (32)
+   Start at  20:33:43
+   Duration  396ms (transform 273ms, setup 0ms, collect 320ms, tests 44ms, environment 1ms, prepare 464ms)
+
+ ELIFECYCLE  Command failed with exit code 1.

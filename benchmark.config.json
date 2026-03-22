@@ -8,5 +8,6 @@
   ],
   "tasks": "openspec/changes/backend-generation/tasks.md",
   "testUnit": "pnpm test:unit",
-  "testIntegration": "pnpm test:integration"
+  "testIntegration": "pnpm test:integration",
+  "maxRetries": 5
 }

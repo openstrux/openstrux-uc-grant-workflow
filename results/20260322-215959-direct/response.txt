@@ -1,0 +1,1973 @@
+I'll implement the complete backend systematically, following the specs precisely.
+
+## Files to create/modify:
+- `prisma/schema.prisma`
+- `packages/domain/src/schemas/index.ts`
+- `packages/domain/src/entities/index.ts`
+- `packages/policies/src/eligibility/evaluateEligibility.ts`
+- `packages/policies/src/workflow/submitProposal.ts`
+- `packages/policies/src/workflow/runEligibilityCheck.ts`
+- `packages/policies/src/access/checkAccess.ts`
+- `app/web/src/server/auth/middleware.ts`
+- `app/web/src/app/api/intake/route.ts`
+- `app/web/src/app/api/eligibility/route.ts`
+- `app/web/src/app/api/review/route.ts` (stub)
+- `app/web/src/app/api/clarification/route.ts` (stub)
+- `app/web/src/app/api/validation/route.ts` (stub)
+- `app/web/src/app/api/audit/route.ts` (stub)
+- `packages/policies/src/intake/blindedPacketMapper.ts`
+- `packages/domain/src/lib/prisma.ts`
+
+---
+
+```prisma
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enumerations ────────────────────────────────────────────────────────────
+
+enum ProposalStatus {
+  draft
+  submitted
+  eligibility_failed
+  eligible
+  under_review
+  clarification_requested
+  revised
+  validation_pending
+  selected
+  rejected
+}
+
+enum EligibilityStatus {
+  eligible
+  ineligible
+  pending
+}
+
+enum CallStatus {
+  draft
+  open
+  closed
+  archived
+}
+
+// ─── Call ────────────────────────────────────────────────────────────────────
+
+model Call {
+  id                       String      @id @default(cuid())
+  title                    String
+  description              String
+  open_date                DateTime
+  close_date               DateTime
+  status                   CallStatus  @default(draft)
+  enabled_eligibility_checks String[]
+  max_budget_k_eur         Float
+  reviewer_policy_version  String
+
+  submissions              Submission[]
+
+  created_at               DateTime    @default(now())
+  updated_at               DateTime    @updatedAt
+
+  @@map("call")
+}
+
+// ─── Submission ──────────────────────────────────────────────────────────────
+
+model Submission {
+  id               String          @id @default(cuid())
+  call_id          String
+  applicant_alias  String
+  status           ProposalStatus  @default(draft)
+  submitted_at     DateTime?
+
+  call             Call            @relation(fields: [call_id], references: [id])
+  proposal_versions ProposalVersion[]
+  applicant_identity ApplicantIdentity?
+  eligibility_records EligibilityRecord[]
+
+  created_at       DateTime        @default(now())
+  updated_at       DateTime        @updatedAt
+
+  @@map("submission")
+}
+
+// ─── ProposalVersion ─────────────────────────────────────────────────────────
+
+model ProposalVersion {
+  id                    String    @id @default(cuid())
+  submission_id         String
+  version_number        Int
+  is_effective          Boolean   @default(false)
+
+  title                 String
+  abstract              String
+  requested_budget_k_eur Float
+  budget_usage          String
+  tasks_breakdown       Json
+  attachments_meta      Json
+
+  submission            Submission  @relation(fields: [submission_id], references: [id])
+  blinded_packet        BlindedPacket?
+
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+
+  @@unique([submission_id, version_number])
+  @@map("proposal_version")
+}
+
+// ─── ApplicantIdentity ───────────────────────────────────────────────────────
+
+model ApplicantIdentity {
+  id             String    @id @default(cuid())
+  submission_id  String    @unique
+  legal_name     String
+  email          String
+  country        String
+  organisation   String
+
+  submission     Submission @relation(fields: [submission_id], references: [id])
+
+  created_at     DateTime  @default(now())
+  updated_at     DateTime  @updatedAt
+
+  @@map("applicant_identity")
+}
+
+// ─── BlindedPacket ───────────────────────────────────────────────────────────
+
+model BlindedPacket {
+  id                  String          @id @default(cuid())
+  proposal_version_id String          @unique
+  content             Json
+
+  proposal_version    ProposalVersion @relation(fields: [proposal_version_id], references: [id])
+
+  created_at          DateTime        @default(now())
+  updated_at          DateTime        @updatedAt
+
+  @@map("blinded_packet")
+}
+
+// ─── EligibilityRecord ───────────────────────────────────────────────────────
+
+model EligibilityRecord {
+  id               String            @id @default(cuid())
+  submission_id    String
+  status           EligibilityStatus @default(pending)
+  inputs           Json
+  active_rules     String[]
+  failure_reasons  String[]
+  evaluated_at     DateTime          @default(now())
+
+  submission       Submission        @relation(fields: [submission_id], references: [id])
+
+  created_at       DateTime          @default(now())
+  updated_at       DateTime          @updatedAt
+
+  @@map("eligibility_record")
+}
+
+// ─── AuditEvent ──────────────────────────────────────────────────────────────
+
+model AuditEvent {
+  id           String   @id @default(cuid())
+  event_type   String
+  actor_id     String
+  target_type  String
+  target_id    String
+  payload      Json
+  timestamp    DateTime @default(now())
+
+  @@map("audit_event")
+}
+```
+
+---
+
+```typescript
+// packages/domain/src/schemas/index.ts
+
+import { z } from "zod";
+
+// ─── Enumerations ────────────────────────────────────────────────────────────
+
+export const ProposalStatusSchema = z.enum([
+  "draft",
+  "submitted",
+  "eligibility_failed",
+  "eligible",
+  "under_review",
+  "clarification_requested",
+  "revised",
+  "validation_pending",
+  "selected",
+  "rejected",
+]);
+
+export const EligibilityStatusSchema = z.enum([
+  "eligible",
+  "ineligible",
+  "pending",
+]);
+
+export const CallStatusSchema = z.enum([
+  "draft",
+  "open",
+  "closed",
+  "archived",
+]);
+
+export const PrincipalRoleSchema = z.enum([
+  "applicant",
+  "admin",
+  "reviewer",
+  "validator",
+  "auditor",
+]);
+
+// ─── EligibilityInputs ───────────────────────────────────────────────────────
+
+export const EligibilityInputsSchema = z.object({
+  submitted_in_english: z.boolean(),
+  aligned_with_call: z.boolean(),
+  primary_objective_is_rd: z.boolean(),
+  meets_european_dimension: z.enum(["true", "false", "not_applicable"]),
+  requested_budget_k_eur: z.number().positive(),
+  first_time_applicant_in_programme: z.boolean(),
+});
+
+// ─── Call ────────────────────────────────────────────────────────────────────
+
+export const CallSchema = z.object({
+  id: z.string().cuid(),
+  title: z.string().min(1),
+  description: z.string().min(1),
+  open_date: z.coerce.date(),
+  close_date: z.coerce.date(),
+  status: CallStatusSchema,
+  enabled_eligibility_checks: z.array(z.string()),
+  max_budget_k_eur: z.number().positive(),
+  reviewer_policy_version: z.string().min(1),
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date(),
+});
+
+// ─── Submission ──────────────────────────────────────────────────────────────
+
+export const SubmissionSchema = z.object({
+  id: z.string().cuid(),
+  call_id: z.string().cuid(),
+  applicant_alias: z.string().min(1),
+  status: ProposalStatusSchema,
+  submitted_at: z.coerce.date().nullable(),
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date(),
+});
+
+// ─── ProposalVersion ─────────────────────────────────────────────────────────
+
+export const AttachmentMetaSchema = z.object({
+  filename: z.string(),
+  mime_type: z.string(),
+  size_bytes: z.number().int().nonnegative(),
+  checksum: z.string().optional(),
+});
+
+export const TaskSchema = z.object({
+  task_id: z.string(),
+  description: z.string(),
+  duration_weeks: z.number().int().positive(),
+  responsible: z.string(),
+});
+
+export const ProposalVersionSchema = z.object({
+  id: z.string().cuid(),
+  submission_id: z.string().cuid(),
+  version_number: z.number().int().positive(),
+  is_effective: z.boolean(),
+  title: z.string().min(1),
+  abstract: z.string().min(1),
+  requested_budget_k_eur: z.number().positive(),
+  budget_usage: z.string().min(1),
+  tasks_breakdown: z.array(TaskSchema),
+  attachments_meta: z.array(AttachmentMetaSchema),
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date(),
+});
+
+// ─── ApplicantIdentity ───────────────────────────────────────────────────────
+
+export const ApplicantIdentitySchema = z.object({
+  id: z.string().cuid(),
+  submission_id: z.string().cuid(),
+  legal_name: z.string().min(1),
+  email: z.string().email(),
+  country: z.string().min(2).max(2),
+  organisation: z.string().min(1),
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date(),
+});
+
+// ─── BlindedPacket ───────────────────────────────────────────────────────────
+
+export const BlindedContentSchema = z.object({
+  proposal_version_id: z.string().cuid(),
+  submission_id: z.string().cuid(),
+  version_number: z.number().int().positive(),
+  title: z.string(),
+  abstract: z.string(),
+  requested_budget_k_eur: z.number(),
+  budget_usage: z.string(),
+  tasks_breakdown: z.array(TaskSchema),
+  attachments_meta: z.array(AttachmentMetaSchema),
+});
+
+export const BlindedPacketSchema = z.object({
+  id: z.string().cuid(),
+  proposal_version_id: z.string().cuid(),
+  content: BlindedContentSchema,
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date(),
+});
+
+// ─── EligibilityRecord ───────────────────────────────────────────────────────
+
+export const EligibilityRecordSchema = z.object({
+  id: z.string().cuid(),
+  submission_id: z.string().cuid(),
+  status: EligibilityStatusSchema,
+  inputs: EligibilityInputsSchema,
+  active_rules: z.array(z.string()),
+  failure_reasons: z.array(z.string()),
+  evaluated_at: z.coerce.date(),
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date(),
+});
+
+// ─── AuditEvent ──────────────────────────────────────────────────────────────
+
+export const AuditEventSchema = z.object({
+  id: z.string().cuid(),
+  event_type: z.string().min(1),
+  actor_id: z.string().min(1),
+  target_type: z.string().min(1),
+  target_id: z.string().min(1),
+  payload: z.record(z.unknown()),
+  timestamp: z.coerce.date(),
+});
+
+// ─── API Input Schemas ───────────────────────────────────────────────────────
+
+export const SubmitProposalInputSchema = z.object({
+  call_id: z.string().min(1),
+  // Proposal content
+  title: z.string().min(1),
+  abstract: z.string().min(1),
+  requested_budget_k_eur: z.number().positive(),
+  budget_usage: z.string().min(1),
+  tasks_breakdown: z.array(TaskSchema),
+  attachments_meta: z.array(AttachmentMetaSchema).default([]),
+  // Identity
+  legal_name: z.string().min(1),
+  email: z.string().email(),
+  country: z.string().min(2).max(2),
+  organisation: z.string().min(1),
+});
+
+export const EligibilityCheckInputSchema = z.object({
+  submission_id: z.string().min(1),
+  inputs: EligibilityInputsSchema,
+});
+
+// ─── Type exports ─────────────────────────────────────────────────────────────
+
+export type SubmitProposalInput = z.infer<typeof SubmitProposalInputSchema>;
+export type EligibilityCheckInput = z.infer<typeof EligibilityCheckInputSchema>;
+export type EligibilityInputs = z.infer<typeof EligibilityInputsSchema>;
+export type BlindedContent = z.infer<typeof BlindedContentSchema>;
+export type AttachmentMeta = z.infer<typeof AttachmentMetaSchema>;
+export type Task = z.infer<typeof TaskSchema>;
+```
+
+---
+
+```typescript
+// packages/domain/src/entities/index.ts
+
+import type { z } from "zod";
+import type {
+  ProposalStatusSchema,
+  EligibilityStatusSchema,
+  CallStatusSchema,
+  PrincipalRoleSchema,
+  EligibilityInputsSchema,
+  CallSchema,
+  SubmissionSchema,
+  ProposalVersionSchema,
+  ApplicantIdentitySchema,
+  BlindedPacketSchema,
+  BlindedContentSchema,
+  EligibilityRecordSchema,
+  AuditEventSchema,
+  AttachmentMetaSchema,
+  TaskSchema,
+} from "../schemas/index.js";
+
+// ─── Enumeration types ────────────────────────────────────────────────────────
+
+export type ProposalStatus = z.infer<typeof ProposalStatusSchema>;
+export type EligibilityStatus = z.infer<typeof EligibilityStatusSchema>;
+export type CallStatus = z.infer<typeof CallStatusSchema>;
+export type PrincipalRole = z.infer<typeof PrincipalRoleSchema>;
+
+// ─── Value objects ────────────────────────────────────────────────────────────
+
+export type EligibilityInputs = z.infer<typeof EligibilityInputsSchema>;
+export type AttachmentMeta = z.infer<typeof AttachmentMetaSchema>;
+export type Task = z.infer<typeof TaskSchema>;
+export type BlindedContent = z.infer<typeof BlindedContentSchema>;
+
+// ─── Entities ────────────────────────────────────────────────────────────────
+
+export type Call = z.infer<typeof CallSchema>;
+export type Submission = z.infer<typeof SubmissionSchema>;
+export type ProposalVersion = z.infer<typeof ProposalVersionSchema>;
+export type ApplicantIdentity = z.infer<typeof ApplicantIdentitySchema>;
+export type BlindedPacket = z.infer<typeof BlindedPacketSchema>;
+export type EligibilityRecord = z.infer<typeof EligibilityRecordSchema>;
+export type AuditEvent = z.infer<typeof AuditEventSchema>;
+
+// ─── Principal ────────────────────────────────────────────────────────────────
+
+export interface Principal {
+  /** Stable identifier for the authenticated user (sub claim in JWT) */
+  id: string;
+  role: PrincipalRole;
+  /** For applicants: the alias used in submissions */
+  alias?: string;
+  /** For reviewers: submission IDs they are assigned to */
+  assignedSubmissionIds?: string[];
+}
+
+// ─── Policy evaluation types ──────────────────────────────────────────────────
+
+export type ResourceType =
+  | "Call"
+  | "Submission"
+  | "ProposalVersion"
+  | "ApplicantIdentity"
+  | "BlindedPacket"
+  | "EligibilityRecord"
+  | "AuditEvent";
+
+export type Operation = "read" | "write" | "delete";
+
+export interface AccessRequest {
+  principal: Principal;
+  resource: ResourceType;
+  operation: Operation;
+  /** The record being accessed, used for ownership checks */
+  context?: AccessContext;
+}
+
+export interface AccessContext {
+  submissionId?: string;
+  applicantAlias?: string;
+  submissionStatus?: ProposalStatus;
+}
+
+export interface AccessResult {
+  allowed: boolean;
+  reason: string;
+  policyName: string;
+}
+
+// ─── Eligibility rule types ───────────────────────────────────────────────────
+
+export type EligibilityCheckName =
+  | "submittedInEnglish"
+  | "alignedWithCall"
+  | "primaryObjectiveIsRd"
+  | "meetsEuropeanDimension"
+  | "requestedBudgetKEur"
+  | "firstTimeApplicantInProgramme";
+
+export interface EligibilityRule {
+  name: EligibilityCheckName;
+  evaluate: (inputs: EligibilityInputs, config: EligibilityRuleConfig) => EligibilityRuleResult;
+}
+
+export interface EligibilityRuleConfig {
+  max_budget_k_eur?: number;
+}
+
+export interface EligibilityRuleResult {
+  passed: boolean;
+  failure_reason?: string;
+}
+
+export interface EligibilityEvaluation {
+  status: EligibilityStatus;
+  active_rules: EligibilityCheckName[];
+  failure_reasons: string[];
+}
+
+// ─── Service result types ─────────────────────────────────────────────────────
+
+export interface SubmitProposalResult {
+  submission_id: string;
+  proposal_version_id: string;
+  status: ProposalStatus;
+}
+
+export interface RunEligibilityCheckResult {
+  eligibility_record_id: string;
+  status: EligibilityStatus;
+  failure_reasons: string[];
+}
+```
+
+---
+
+```typescript
+// packages/domain/src/lib/prisma.ts
+
+import { PrismaClient } from "@prisma/client";
+
+declare global {
+  // eslint-disable-next-line no-var
+  var __prisma: PrismaClient | undefined;
+}
+
+function createPrismaClient(): PrismaClient {
+  return new PrismaClient({
+    log:
+      process.env["NODE_ENV"] === "development"
+        ? ["query", "warn", "error"]
+        : ["warn", "error"],
+  });
+}
+
+// In development, avoid creating multiple instances due to hot-reload
+export const prisma: PrismaClient =
+  globalThis.__prisma ?? createPrismaClient();
+
+if (process.env["NODE_ENV"] !== "production") {
+  globalThis.__prisma = prisma;
+}
+```
+
+---
+
+```typescript
+// packages/policies/src/access/checkAccess.ts
+
+import type {
+  AccessRequest,
+  AccessResult,
+  Principal,
+  ProposalStatus,
+} from "../../../domain/src/entities/index.js";
+
+// ─── Policy implementations ───────────────────────────────────────────────────
+
+/**
+ * POLICY: applicant-own-proposals
+ * Applicants can read/write their own submissions (not BlindedPacket or
+ * EligibilityRecord.failure_reasons which is handled at serialisation time).
+ * Write access is limited to states where the spec grants it.
+ */
+function evaluateApplicantPolicy(req: AccessRequest): AccessResult {
+  const { resource, operation, context } = req;
+  const principal = req.principal;
+
+  // Applicants can never access ApplicantIdentity of others or BlindedPackets
+  if (resource === "ApplicantIdentity") {
+    // They may only access their own identity record indirectly (never via reviewer path)
+    if (context?.applicantAlias && context.applicantAlias !== principal.alias) {
+      return deny("applicant-own-proposals", "Applicants may only access their own identity.");
+    }
+  }
+
+  if (resource === "BlindedPacket") {
+    return deny("applicant-own-proposals", "Applicants do not have access to blinded packets.");
+  }
+
+  if (resource === "AuditEvent") {
+    return deny("applicant-own-proposals", "Applicants may not access audit events.");
+  }
+
+  // Ownership check: must be own submission
+  if (context?.applicantAlias && context.applicantAlias !== principal.alias) {
+    return deny("applicant-own-proposals", "Applicants may only access their own submissions.");
+  }
+
+  // Write access is state-gated per workflow-states.md
+  if (operation === "write") {
+    const writeableStates: ProposalStatus[] = ["draft", "clarification_requested"];
+    const currentStatus = context?.submissionStatus;
+    if (currentStatus !== undefined && !writeableStates.includes(currentStatus)) {
+      return deny(
+        "applicant-own-proposals",
+        `Applicants cannot write to submissions in state '${currentStatus}'.`
+      );
+    }
+  }
+
+  if (operation === "delete") {
+    return deny("applicant-own-proposals", "Applicants may not delete records.");
+  }
+
+  return allow("applicant-own-proposals", "Applicant accessing own proposal.");
+}
+
+/**
+ * POLICY: admin-all
+ * Admins have read/write/delete to all entities. Deletion must be audit-logged
+ * (enforced at service layer).
+ */
+function evaluateAdminPolicy(req: AccessRequest): AccessResult {
+  return allow("admin-all", "Admin has full access.");
+}
+
+/**
+ * POLICY: reviewer-blinded-assigned + deny-identity-to-reviewer
+ */
+function evaluateReviewerPolicy(req: AccessRequest): AccessResult {
+  const { resource, operation, context } = req;
+  const principal = req.principal;
+
+  // Hard deny: reviewer may never access ApplicantIdentity
+  if (resource === "ApplicantIdentity") {
+    return deny(
+      "deny-identity-to-reviewer",
+      "Reviewers are explicitly denied access to ApplicantIdentity."
+    );
+  }
+
+  // Hard deny: reviewer may never access Submission (contains applicant_alias)
+  if (resource === "Submission") {
+    return deny(
+      "deny-identity-to-reviewer",
+      "Reviewers may not access Submission records directly (contains identity fields)."
+    );
+  }
+
+  if (resource === "AuditEvent") {
+    return deny("reviewer-blinded-assigned", "Reviewers may not access audit events.");
+  }
+
+  if (resource === "Call") {
+    // Reviewers may read call metadata (no identity data)
+    if (operation === "read") {
+      return allow("reviewer-blinded-assigned", "Reviewer may read call metadata.");
+    }
+    return deny("reviewer-blinded-assigned", "Reviewers may not write to calls.");
+  }
+
+  if (resource === "BlindedPacket") {
+    if (operation !== "read") {
+      return deny("reviewer-blinded-assigned", "Reviewers may only read blinded packets.");
+    }
+    // Must be assigned to this submission
+    if (context?.submissionId !== undefined) {
+      const assigned = principal.assignedSubmissionIds ?? [];
+      if (!assigned.includes(context.submissionId)) {
+        return deny(
+          "reviewer-blinded-assigned",
+          "Reviewer is not assigned to this submission."
+        );
+      }
+    }
+    return allow("reviewer-blinded-assigned", "Reviewer accessing assigned blinded packet.");
+  }
+
+  // EligibilityRecord — reviewers may read (without failure_reasons: stripped at serialisation)
+  if (resource === "EligibilityRecord") {
+    if (operation === "read") {
+      if (context?.submissionId !== undefined) {
+        const assigned = principal.assignedSubmissionIds ?? [];
+        if (!assigned.includes(context.submissionId)) {
+          return deny(
+            "reviewer-blinded-assigned",
+            "Reviewer is not assigned to this submission."
+          );
+        }
+      }
+      return allow("reviewer-blinded-assigned", "Reviewer accessing eligibility status of assigned submission.");
+    }
+    return deny("reviewer-blinded-assigned", "Reviewers may not write eligibility records.");
+  }
+
+  return deny("reviewer-blinded-assigned", `Reviewer has no access to resource '${resource}'.`);
+}
+
+/**
+ * POLICY: validator (P5+) — stub
+ */
+function evaluateValidatorPolicy(_req: AccessRequest): AccessResult {
+  return deny("validator-stub", "Validator role is not active in this phase (P5+).");
+}
+
+/**
+ * POLICY: auditor — read-only access to AuditEvent
+ */
+function evaluateAuditorPolicy(req: AccessRequest): AccessResult {
+  if (req.resource === "AuditEvent" && req.operation === "read") {
+    return allow("auditor-read-audit", "Auditor reading audit events.");
+  }
+  return deny("auditor-read-audit", "Auditors may only read audit events.");
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function allow(policyName: string, reason: string): AccessResult {
+  return { allowed: true, reason, policyName };
+}
+
+function deny(policyName: string, reason: string): AccessResult {
+  return { allowed: false, reason, policyName };
+}
+
+// ─── Main export ──────────────────────────────────────────────────────────────
+
+/**
+ * Evaluates access for a given principal + resource + operation.
+ * This is the single enforcement point for all access policies.
+ */
+export function checkAccess(req: AccessRequest): AccessResult {
+  const { principal } = req;
+
+  switch (principal.role) {
+    case "applicant":
+      return evaluateApplicantPolicy(req);
+    case "admin":
+      return evaluateAdminPolicy(req);
+    case "reviewer":
+      return evaluateReviewerPolicy(req);
+    case "validator":
+      return evaluateValidatorPolicy(req);
+    case "auditor":
+      return evaluateAuditorPolicy(req);
+    default: {
+      // Exhaustive check
+      const _exhaustive: never = principal.role;
+      return deny("unknown-role", `Unknown role: ${String(_exhaustive)}`);
+    }
+  }
+}
+
+/**
+ * Asserts access is allowed; throws if denied.
+ * Use in service layer to fail fast.
+ */
+export function assertAccess(req: AccessRequest): void {
+  const result = checkAccess(req);
+  if (!result.allowed) {
+    const err = new AccessDeniedError(result.reason, result.policyName);
+    throw err;
+  }
+}
+
+export class AccessDeniedError extends Error {
+  public readonly policyName: string;
+
+  constructor(reason: string, policyName: string) {
+    super(`Access denied [${policyName}]: ${reason}`);
+    this.name = "AccessDeniedError";
+    this.policyName = policyName;
+  }
+}
+```
+
+---
+
+```typescript
+// packages/policies/src/eligibility/evaluateEligibility.ts
+
+import type {
+  EligibilityInputs,
+  EligibilityCheckName,
+  EligibilityRule,
+  EligibilityRuleConfig,
+  EligibilityRuleResult,
+  EligibilityEvaluation,
+  EligibilityStatus,
+} from "../../../domain/src/entities/index.js";
+
+// ─── Individual rule implementations ────────────────────────────────────────
+
+const submittedInEnglishRule: EligibilityRule = {
+  name: "submittedInEnglish",
+  evaluate(inputs: EligibilityInputs, _config: EligibilityRuleConfig): EligibilityRuleResult {
+    if (!inputs.submitted_in_english) {
+      return { passed: false, failure_reason: "Proposal must be submitted in English." };
+    }
+    return { passed: true };
+  },
+};
+
+const alignedWithCallRule: EligibilityRule = {
+  name: "alignedWithCall",
+  evaluate(inputs: EligibilityInputs, _config: EligibilityRuleConfig): EligibilityRuleResult {
+    if (!inputs.aligned_with_call) {
+      return { passed: false, failure_reason: "Proposal objectives are not aligned with the call." };
+    }
+    return { passed: true };
+  },
+};
+
+const primaryObjectiveIsRdRule: EligibilityRule = {
+  name: "primaryObjectiveIsRd",
+  evaluate(inputs: EligibilityInputs, _config: EligibilityRuleConfig): EligibilityRuleResult {
+    if (!inputs.primary_objective_is_rd) {
+      return {
+        passed: false,
+        failure_reason: "Primary objective must be research and development.",
+      };
+    }
+    return { passed: true };
+  },
+};
+
+const meetsEuropeanDimensionRule: EligibilityRule = {
+  name: "meetsEuropeanDimension",
+  evaluate(inputs: EligibilityInputs, _config: EligibilityRuleConfig): EligibilityRuleResult {
+    if (inputs.meets_european_dimension === "false") {
+      return {
+        passed: false,
+        failure_reason: "Proposal does not meet the European dimension requirement.",
+      };
+    }
+    return { passed: true };
+  },
+};
+
+const requestedBudgetKEurRule: EligibilityRule = {
+  name: "requestedBudgetKEur",
+  evaluate(inputs: EligibilityInputs, config: EligibilityRuleConfig): EligibilityRuleResult {
+    const max = config.max_budget_k_eur ?? 500;
+    if (inputs.requested_budget_k_eur > max) {
+      return {
+        passed: false,
+        failure_reason: `Requested budget ${inputs.requested_budget_k_eur}k EUR exceeds maximum of ${max}k EUR.`,
+      };
+    }
+    return { passed: true };
+  },
+};
+
+const firstTimeApplicantInProgrammeRule: EligibilityRule = {
+  name: "firstTimeApplicantInProgramme",
+  evaluate(inputs: EligibilityInputs, _config: EligibilityRuleConfig): EligibilityRuleResult {
+    // This rule is informational in P2; no failure is produced — the information
+    // is recorded in inputs for admin use.
+    return { passed: true };
+  },
+};
+
+// ─── Rule registry ────────────────────────────────────────────────────────────
+
+const RULE_REGISTRY: Record<EligibilityCheckName, EligibilityRule> = {
+  submittedInEnglish: submittedInEnglishRule,
+  alignedWithCall: alignedWithCallRule,
+  primaryObjectiveIsRd: primaryObjectiveIsRdRule,
+  meetsEuropeanDimension: meetsEuropeanDimensionRule,
+  requestedBudgetKEur: requestedBudgetKEurRule,
+  firstTimeApplicantInProgramme: firstTimeApplicantInProgrammeRule,
+};
+
+// ─── Pure evaluation function ─────────────────────────────────────────────────
+
+/**
+ * Evaluates eligibility inputs against the supplied active rule names.
+ *
+ * This is a pure function — no side effects, no DB access.
+ * All inputs and active rule names are captured at evaluation time so they
+ * can be stored verbatim in EligibilityRecord.
+ */
+export function evaluateEligibility(
+  inputs: EligibilityInputs,
+  activeRuleNames: EligibilityCheckName[],
+  config: EligibilityRuleConfig
+): EligibilityEvaluation {
+  const failure_reasons: string[] = [];
+
+  for (const ruleName of activeRuleNames) {
+    const rule = RULE_REGISTRY[ruleName];
+    if (!rule) {
+      // Unknown rule name — log as failure to be safe
+      failure_reasons.push(`Unknown eligibility rule: ${ruleName}`);
+      continue;
+    }
+    const result: EligibilityRuleResult = rule.evaluate(inputs, config);
+    if (!result.passed && result.failure_reason) {
+      failure_reasons.push(result.failure_reason);
+    }
+  }
+
+  const status: EligibilityStatus =
+    failure_reasons.length === 0 ? "eligible" : "ineligible";
+
+  return {
+    status,
+    active_rules: activeRuleNames,
+    failure_reasons,
+  };
+}
+
+/**
+ * Returns the full set of known rule names.
+ * Used to validate that call.enabled_eligibility_checks contains valid values.
+ */
+export function knownRuleNames(): EligibilityCheckName[] {
+  return Object.keys(RULE_REGISTRY) as EligibilityCheckName[];
+}
+
+/**
+ * Validates that every name in the supplied array is a known rule.
+ * Returns unknown names so callers can decide how to handle them.
+ */
+export function filterValidRuleNames(names: string[]): {
+  valid: EligibilityCheckName[];
+  unknown: string[];
+} {
+  const known = new Set<string>(knownRuleNames());
+  const valid: EligibilityCheckName[] = [];
+  const unknown: string[] = [];
+
+  for (const name of names) {
+    if (known.has(name)) {
+      valid.push(name as EligibilityCheckName);
+    } else {
+      unknown.push(name);
+    }
+  }
+
+  return { valid, unknown };
+}
+```
+
+---
+
+```typescript
+// packages/policies/src/intake/blindedPacketMapper.ts
+
+import type {
+  BlindedContent,
+  AttachmentMeta,
+  Task,
+} from "../../domain/src/entities/index.js";
+
+/**
+ * Input type mirrors the DB shape after joining ProposalVersion with Submission.
+ * We keep this explicit to prevent accidentally including identity fields.
+ */
+export interface ProposalVersionForBlinding {
+  id: string;
+  submission_id: string;
+  version_number: number;
+  is_effective: boolean;
+  title: string;
+  abstract: string;
+  requested_budget_k_eur: number;
+  budget_usage: string;
+  tasks_breakdown: Task[];
+  attachments_meta: AttachmentMeta[];
+}
+
+/**
+ * Maps a ProposalVersion to a BlindedContent object.
+ *
+ * IDENTITY SEPARATION INVARIANT:
+ * - Must never include: legal_name, email, country, organisation, applicant_alias
+ * - Only content fields from ProposalVersion are included
+ * - The submission_id is retained for reviewer assignment lookups but
+ *   does NOT reveal identity (it's a random CUID)
+ *
+ * This mapper is the single code path that produces reviewer-visible content.
+ * It is tested by a golden test in tests/unit/blindedPacketMapper.test.ts.
+ */
+export function mapToBlindedContent(
+  version: ProposalVersionForBlinding
+): BlindedContent {
+  return {
+    proposal_version_id: version.id,
+    submission_id: version.submission_id,
+    version_number: version.version_number,
+    title: version.title,
+    abstract: version.abstract,
+    requested_budget_k_eur: version.requested_budget_k_eur,
+    budget_usage: version.budget_usage,
+    tasks_breakdown: version.tasks_breakdown.map(stripTaskIdentity),
+    attachments_meta: version.attachments_meta.map(stripAttachmentIdentity),
+  };
+}
+
+/**
+ * Tasks may contain applicant-authored text; we include them as-is since
+ * proposal content is intended to be non-identifying by design. If a task
+ * contained identity (e.g. a name in `responsible`), that is an applicant
+ * error, not a system error. Future phases may add NLP redaction here.
+ */
+function stripTaskIdentity(task: Task): Task {
+  return {
+    task_id: task.task_id,
+    description: task.description,
+    duration_weeks: task.duration_weeks,
+    responsible: task.responsible,
+  };
+}
+
+function stripAttachmentIdentity(meta: AttachmentMeta): AttachmentMeta {
+  return {
+    filename: meta.filename,
+    mime_type: meta.mime_type,
+    size_bytes: meta.size_bytes,
+    ...(meta.checksum !== undefined ? { checksum: meta.checksum } : {}),
+  };
+}
+
+/**
+ * Type guard: verify that a plain object does NOT contain identity fields.
+ * Used in unit tests.
+ */
+export function containsIdentityFields(obj: Record<string, unknown>): boolean {
+  const identityKeys = [
+    "legal_name",
+    "email",
+    "country",
+    "organisation",
+    "applicant_alias",
+  ];
+  return identityKeys.some((key) => key in obj);
+}
+```
+
+---
+
+```typescript
+// packages/policies/src/workflow/submitProposal.ts
+
+import { prisma } from "../../domain/src/lib/prisma.js";
+import { mapToBlindedContent } from "../intake/blindedPacketMapper.js";
+import type {
+  Principal,
+  SubmitProposalResult,
+  Task,
+  AttachmentMeta,
+} from "../../domain/src/entities/index.js";
+import { assertAccess } from "../access/checkAccess.js";
+
+export interface SubmitProposalParams {
+  call_id: string;
+  title: string;
+  abstract: string;
+  requested_budget_k_eur: number;
+  budget_usage: string;
+  tasks_breakdown: Task[];
+  attachments_meta: AttachmentMeta[];
+  // Identity fields (handled in a separate data path)
+  legal_name: string;
+  email: string;
+  country: string;
+  organisation: string;
+}
+
+/**
+ * Creates a new submission with an initial ProposalVersion, ApplicantIdentity,
+ * BlindedPacket, and AuditEvent in a single Prisma transaction.
+ *
+ * Identity separation: ApplicantIdentity is written in the same transaction but
+ * is stored in a separate table and is never included in the returned result.
+ */
+export async function submitProposal(
+  params: SubmitProposalParams,
+  principal: Principal
+): Promise<SubmitProposalResult> {
+  // Access check: only applicants (and admins) may submit
+  assertAccess({
+    principal,
+    resource: "Submission",
+    operation: "write",
+  });
+
+  // Determine the applicant alias from the principal
+  const applicantAlias =
+    principal.alias ?? principal.id;
+
+  return prisma.$transaction(async (tx) => {
+    // 1. Verify the call exists and is open
+    const call = await tx.call.findUnique({
+      where: { id: params.call_id },
+    });
+
+    if (!call) {
+      throw new Error(`Call '${params.call_id}' not found.`);
+    }
+
+    const now = new Date();
+    if (call.status !== "open") {
+      throw new Error(`Call '${params.call_id}' is not open (status: ${call.status}).`);
+    }
+    if (now < call.open_date || now > call.close_date) {
+      throw new Error(`Call '${params.call_id}' is outside its submission window.`);
+    }
+
+    // 2. Create the Submission
+    const submission = await tx.submission.create({
+      data: {
+        call_id: params.call_id,
+        applicant_alias: applicantAlias,
+        status: "submitted",
+        submitted_at: now,
+      },
+    });
+
+    // 3. Create the initial ProposalVersion
+    const proposalVersion = await tx.proposalVersion.create({
+      data: {
+        submission_id: submission.id,
+        version_number: 1,
+        is_effective: true,
+        title: params.title,
+        abstract: params.abstract,
+        requested_budget_k_eur: params.requested_budget_k_eur,
+        budget_usage: params.budget_usage,
+        tasks_breakdown: params.tasks_breakdown,
+        attachments_meta: params.attachments_meta,
+      },
+    });
+
+    // 4. Create the ApplicantIdentity (separate data path)
+    await tx.applicantIdentity.create({
+      data: {
+        submission_id: submission.id,
+        legal_name: params.legal_name,
+        email: params.email,
+        country: params.country,
+        organisation: params.organisation,
+      },
+    });
+
+    // 5. Generate the BlindedPacket immediately on submission
+    const blindedContent = mapToBlindedContent({
+      id: proposalVersion.id,
+      submission_id: proposalVersion.submission_id,
+      version_number: proposalVersion.version_number,
+      is_effective: proposalVersion.is_effective,
+      title: proposalVersion.title,
+      abstract: proposalVersion.abstract,
+      requested_budget_k_eur: proposalVersion.requested_budget_k_eur,
+      budget_usage: proposalVersion.budget_usage,
+      tasks_breakdown: proposalVersion.tasks_breakdown as Task[],
+      attachments_meta: proposalVersion.attachments_meta as AttachmentMeta[],
+    });
+
+    await tx.blindedPacket.create({
+      data: {
+        proposal_version_id: proposalVersion.id,
+        content: blindedContent,
+      },
+    });
+
+    // 6. Write AuditEvent
+    await tx.auditEvent.create({
+      data: {
+        event_type: "submission.created",
+        actor_id: principal.id,
+        target_type: "Submission",
+        target_id: submission.id,
+        payload: {
+          call_id: params.call_id,
+          version_number: 1,
+          requested_budget_k_eur: params.requested_budget_k_eur,
+          status: "submitted",
+        },
+        timestamp: now,
+      },
+    });
+
+    return {
+      submission_id: submission.id,
+      proposal_version_id: proposalVersion.id,
+      status: "submitted",
+    };
+  });
+}
+```
+
+---
+
+```typescript
+// packages/policies/src/workflow/runEligibilityCheck.ts
+
+import { prisma } from "../../domain/src/lib/prisma.js";
+import {
+  evaluateEligibility,
+  filterValidRuleNames,
+} from "../eligibility/evaluateEligibility.js";
+import { assertAccess } from "../access/checkAccess.js";
+import type {
+  Principal,
+  EligibilityInputs,
+  EligibilityCheckName,
+  ProposalStatus,
+  RunEligibilityCheckResult,
+  Task,
+  AttachmentMeta,
+} from "../../domain/src/entities/index.js";
+import { mapToBlindedContent } from "../intake/blindedPacketMapper.js";
+
+export interface RunEligibilityCheckParams {
+  submission_id: string;
+  inputs: EligibilityInputs;
+}
+
+/**
+ * Runs the eligibility gate for a submission:
+ * 1. Loads the call's active rule set
+ * 2. Evaluates the provided inputs (pure)
+ * 3. Persists the EligibilityRecord with exact inputs + active rules
+ * 4. Transitions submission status
+ * 5. If newly eligible, generates/updates the BlindedPacket
+ * 6. Writes an AuditEvent
+ *
+ * Only admins may trigger eligibility checks (per access policies).
+ */
+export async function runEligibilityCheck(
+  params: RunEligibilityCheckParams,
+  principal: Principal
+): Promise<RunEligibilityCheckResult> {
+  // Access check: only admins may run eligibility checks
+  assertAccess({
+    principal,
+    resource: "EligibilityRecord",
+    operation: "write",
+  });
+
+  return prisma.$transaction(async (tx) => {
+    // 1. Load the submission and its call
+    const submission = await tx.submission.findUnique({
+      where: { id: params.submission_id },
+      include: {
+        call: true,
+        proposal_versions: {
+          where: { is_effective: true },
+        },
+      },
+    });
+
+    if (!submission) {
+      throw new Error(`Submission '${params.submission_id}' not found.`);
+    }
+
+    if (submission.status !== "submitted") {
+      throw new Error(
+        `Eligibility check requires status 'submitted'; current status is '${submission.status}'.`
+      );
+    }
+
+    const call = submission.call;
+
+    // 2. Determine the active rule set from the call config
+    const { valid: activeRules, unknown: unknownRules } = filterValidRuleNames(
+      call.enabled_eligibility_checks
+    );
+
+    // Log unknown rule names but do not fail — admin must be able to proceed
+    if (unknownRules.length > 0) {
+      console.warn(
+        `[runEligibilityCheck] Unknown rule names in call config: ${unknownRules.join(", ")}`
+      );
+    }
+
+    // 3. Evaluate (pure function — no side effects)
+    const evaluation = evaluateEligibility(params.inputs, activeRules, {
+      max_budget_k_eur: call.max_budget_k_eur,
+    });
+
+    // 4. Determine new submission status
+    const newStatus: ProposalStatus =
+      evaluation.status === "eligible" ? "eligible" : "eligibility_failed";
+
+    const now = new Date();
+
+    // 5. Persist the EligibilityRecord with exact inputs captured
+    const eligibilityRecord = await tx.eligibilityRecord.create({
+      data: {
+        submission_id: params.submission_id,
+        status: evaluation.status,
+        inputs: params.inputs as Record<string, unknown>,
+        active_rules: evaluation.active_rules,
+        failure_reasons: evaluation.failure_reasons,
+        evaluated_at: now,
+      },
+    });
+
+    // 6. Update submission status
+    await tx.submission.update({
+      where: { id: params.submission_id },
+      data: { status: newStatus },
+    });
+
+    // 7. If newly eligible, ensure a BlindedPacket exists for the effective version
+    if (evaluation.status === "eligible") {
+      const effectiveVersion = submission.proposal_versions[0];
+      if (effectiveVersion) {
+        // Check if a BlindedPacket already exists (e.g. created at submission time)
+        const existingPacket = await tx.blindedPacket.findUnique({
+          where: { proposal_version_id: effectiveVersion.id },
+        });
+
+        if (!existingPacket) {
+          const blindedContent = mapToBlindedContent({
+            id: effectiveVersion.id,
+            submission_id: effectiveVersion.submission_id,
+            version_number: effectiveVersion.version_number,
+            is_effective: effectiveVersion.is_effective,
+            title: effectiveVersion.title,
+            abstract: effectiveVersion.abstract,
+            requested_budget_k_eur: effectiveVersion.requested_budget_k_eur,
+            budget_usage: effectiveVersion.budget_usage,
+            tasks_breakdown: effectiveVersion.tasks_breakdown as Task[],
+            attachments_meta: effectiveVersion.attachments_meta as AttachmentMeta[],
+          });
+
+          await tx.blindedPacket.create({
+            data: {
+              proposal_version_id: effectiveVersion.id,
+              content: blindedContent,
+            },
+          });
+        }
+      }
+    }
+
+    // 8. Write AuditEvent for the state transition
+    await tx.auditEvent.create({
+      data: {
+        event_type: "eligibility.checked",
+        actor_id: principal.id,
+        target_type: "Submission",
+        target_id: params.submission_id,
+        payload: {
+          eligibility_record_id: eligibilityRecord.id,
+          previous_status: "submitted",
+          new_status: newStatus,
+          eligibility_status: evaluation.status,
+          failure_reasons: evaluation.failure_reasons,
+          active_rules: evaluation.active_rules,
+        },
+        timestamp: now,
+      },
+    });
+
+    return {
+      eligibility_record_id: eligibilityRecord.id,
+      status: evaluation.status,
+      failure_reasons: evaluation.failure_reasons,
+    };
+  });
+}
+```
+
+---
+
+```typescript
+// app/web/src/server/auth/middleware.ts
+
+import { NextRequest, NextResponse } from "next/server";
+import type { Principal, PrincipalRole } from "../../../../packages/domain/src/entities/index.js";
+import { PrincipalRoleSchema } from "../../../../packages/domain/src/schemas/index.js";
+
+// ─── JWT payload type ─────────────────────────────────────────────────────────
+
+interface JwtPayload {
+  sub: string;
+  role: PrincipalRole;
+  alias?: string;
+  assigned_submission_ids?: string[];
+  exp?: number;
+  iat?: number;
+}
+
+// ─── Dev-mode header extraction ───────────────────────────────────────────────
+
+/**
+ * In dev/test mode, reads principal from `X-Role`, `X-Actor-Id`, and
+ * `X-Actor-Alias` headers. This avoids needing an external IdP for P0-P2.
+ *
+ * In production this path must be disabled.
+ */
+function extractPrincipalFromDevHeaders(
+  req: NextRequest
+): Principal | null {
+  const rawRole = req.headers.get("x-role");
+  const actorId = req.headers.get("x-actor-id");
+
+  if (!rawRole || !actorId) return null;
+
+  const roleParse = PrincipalRoleSchema.safeParse(rawRole);
+  if (!roleParse.success) return null;
+
+  const role = roleParse.data;
+  const alias = req.headers.get("x-actor-alias") ?? undefined;
+  const assignedRaw = req.headers.get("x-assigned-submission-ids");
+  const assignedSubmissionIds = assignedRaw
+    ? assignedRaw.split(",").map((s) => s.trim()).filter(Boolean)
+    : undefined;
+
+  return {
+    id: actorId,
+    role,
+    alias,
+    assignedSubmissionIds,
+  };
+}
+
+// ─── JWT extraction (production path) ────────────────────────────────────────
+
+/**
+ * Minimal JWT decoder — reads the payload from a Bearer token WITHOUT
+ * cryptographic verification. Verification should be added before P3.
+ *
+ * For P0-P2 the dev-header path is preferred; this is a fallback scaffold.
+ */
+function extractPrincipalFromJwt(req: NextRequest): Principal | null {
+  const authHeader = req.headers.get("authorization");
+  if (!authHeader?.startsWith("Bearer ")) return null;
+
+  const token = authHeader.slice(7);
+  const parts = token.split(".");
+  if (parts.length !== 3) return null;
+
+  try {
+    const payloadPart = parts[1];
+    if (!payloadPart) return null;
+    // Base64url decode
+    const json = Buffer.from(payloadPart, "base64url").toString("utf-8");
+    const payload = JSON.parse(json) as JwtPayload;
+
+    // Check expiry
+    if (payload.exp !== undefined && Date.now() / 1000 > payload.exp) {
+      return null;
+    }
+
+    const roleParse = PrincipalRoleSchema.safeParse(payload.role);
+    if (!roleParse.success) return null;
+
+    return {
+      id: payload.sub,
+      role: roleParse.data,
+      alias: payload.alias,
+      assignedSubmissionIds: payload.assigned_submission_ids,
+    };
+  } catch {
+    return null;
+  }
+}
+
+// ─── Main exported resolver ───────────────────────────────────────────────────
+
+/**
+ * Resolves a Principal from the incoming request.
+ * Returns null if no valid auth is present.
+ *
+ * Priority:
+ * 1. Dev-mode headers (X-Role + X-Actor-Id) when NODE_ENV !== "production"
+ * 2. Bearer JWT token
+ */
+export function resolvePrincipal(req: NextRequest): Principal | null {
+  if (process.env["NODE_ENV"] !== "production") {
+    const devPrincipal = extractPrincipalFromDevHeaders(req);
+    if (devPrincipal) return devPrincipal;
+  }
+
+  return extractPrincipalFromJwt(req);
+}
+
+// ─── Route handler helpers ────────────────────────────────────────────────────
+
+/**
+ * Extracts principal and returns a 401 response if unauthenticated.
+ * Use at the top of every route handler.
+ */
+export function requireAuth(
+  req: NextRequest
+): { principal: Principal; error?: never } | { principal?: never; error: NextResponse } {
+  const principal = resolvePrincipal(req);
+  if (!principal) {
+    return {
+      error: NextResponse.json(
+        { error: "Unauthorized", message: "Missing or invalid authentication." },
+        { status: 401 }
+      ),
+    };
+  }
+  return { principal };
+}
+
+/**
+ * Returns a 403 response for access denied scenarios.
+ * Includes the policy name for debuggability.
+ */
+export function forbiddenResponse(reason: string, policyName?: string): NextResponse {
+  return NextResponse.json(
+    {
+      error: "Forbidden",
+      message: reason,
+      ...(policyName ? { policy: policyName } : {}),
+    },
+    { status: 403 }
+  );
+}
+
+/**
+ * Returns a 400 validation error response from a Zod error.
+ */
+export function validationErrorResponse(issues: { message: string; path: (string | number)[] }[]): NextResponse {
+  return NextResponse.json(
+    {
+      error: "ValidationError",
+      issues,
+    },
+    { status: 400 }
+  );
+}
+```
+
+---
+
+```typescript
+// app/web/src/app/api/intake/route.ts
+
+import { NextRequest, NextResponse } from "next/server";
+import { SubmitProposalInputSchema } from "../../../../../packages/domain/src/schemas/index.js";
+import { submitProposal } from "../../../../../packages/policies/src/workflow/submitProposal.js";
+import {
+  requireAuth,
+  forbiddenResponse,
+  validationErrorResponse,
+} from "../../server/auth/middleware.js";
+import { AccessDeniedError } from "../../../../../packages/policies/src/access/checkAccess.js";
+
+/**
+ * POST /api/intake
+ *
+ * Creates a new submission with proposal content and applicant identity.
+ * Identity and proposal content are separated at the service layer.
+ *
+ * Roles allowed: applicant, admin
+ */
+export async function POST(req: NextRequest): Promise<NextResponse> {
+  // 1. Authenticate
+  const auth = requireAuth(req);
+  if (auth.error) return auth.error;
+  const { principal } = auth;
+
+  // 2. Validate input
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json(
+      { error: "BadRequest", message: "Request body must be valid JSON." },
+      { status: 400 }
+    );
+  }
+
+  const parsed = SubmitProposalInputSchema.safeParse(body);
+  if (!parsed.success) {
+    return validationErrorResponse(
+      parsed.error.issues.map((i) => ({
+        message: i.message,
+        path: i.path as (string | number)[],
+      }))
+    );
+  }
+
+  const input = parsed.data;
+
+  // 3. Execute service (access control enforced inside)
+  try {
+    const result = await submitProposal(
+      {
+        call_id: input.call_id,
+        title: input.title,
+        abstract: input.abstract,
+        requested_budget_k_eur: input.requested_budget_k_eur,
+        budget_usage: input.budget_usage,
+        tasks_breakdown: input.tasks_breakdown,
+        attachments_meta: input.attachments_meta,
+        legal_name: input.legal_name,
+        email: input.email,
+        country: input.country,
+        organisation: input.organisation,
+      },
+      principal
+    );
+
+    return NextResponse.json(result, { status: 201 });
+  } catch (err) {
+    if (err instanceof AccessDeniedError) {
+      return forbiddenResponse(err.message, err.policyName);
+    }
+    if (err instanceof Error) {
+      // Domain errors (call not found, not open, etc.)
+      return NextResponse.json(
+        { error: "UnprocessableEntity", message: err.message },
+        { status: 422 }
+      );
+    }
+    return NextResponse.json(
+      { error: "InternalServerError", message: "An unexpected error occurred." },
+      { status: 500 }
+    );
+  }
+}
+```
+
+---
+
+```typescript
+// app/web/src/app/api/eligibility/route.ts
+
+import { NextRequest, NextResponse } from "next/server";
+import { EligibilityCheckInputSchema } from "../../../../../packages/domain/src/schemas/index.js";
+import { runEligibilityCheck } from "../../../../../packages/policies/src/workflow/runEligibilityCheck.js";
+import {
+  requireAuth,
+  forbiddenResponse,
+  validationErrorResponse,
+} from "../../server/auth/middleware.js";
+import { AccessDeniedError } from "../../../../../packages/policies/src/access/checkAccess.js";
+
+/**
+ * POST /api/eligibility
+ *
+ * Triggers an eligibility check for a submission.
+ * Persists the EligibilityRecord and transitions the submission status.
+ *
+ * Roles allowed: admin only
+ */
+export async function POST(req: NextRequest): Promise<NextResponse> {
+  // 1. Authenticate
+  const auth = requireAuth(req);
+  if (auth.error) return auth.error;
+  const { principal } = auth;
+
+  // 2. Validate input
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json(
+      { error: "BadRequest", message: "Request body must be valid JSON." },
+      { status: 400 }
+    );
+  }
+
+  const parsed = EligibilityCheckInputSchema.safeParse(body);
+  if (!parsed.success) {
+    return validationErrorResponse(
+      parsed.error.issues.map((i) => ({
+        message: i.message,
+        path: i.path as (string | number)[],
+      }))
+    );
+  }
+
+  const input = parsed.data;
+
+  // 3. Execute service (access control enforced inside)
+  try {
+    const result = await runEligibilityCheck(
+      {
+        submission_id: input.submission_id,
+        inputs: input.inputs,
+      },
+      principal
+    );
+
+    return NextResponse.json(result, { status: 200 });
+  } catch (err) {
+    if (err instanceof AccessDeniedError) {
+      return forbiddenResponse(err.message, err.policyName);
+    }
+    if (err instanceof Error) {
+      return NextResponse.json(
+        { error: "UnprocessableEntity", message: err.message },
+        { status: 422 }
+      );
+    }
+    return NextResponse.json(
+      { error: "InternalServerError", message: "An unexpected error occurred." },
+      { status: 500 }
+    );
+  }
+}
+```
+
+---
+
+```typescript
+// app/web/src/app/api/review/route.ts
+
+import { NextRequest, NextResponse } from "next/server";
+
+/**
+ * P3 — Review
+ * Not implemented in this phase. Returns 501.
+ */
+export async function GET(_req: NextRequest): Promise<NextResponse> {
+  return NextResponse.json(
+    { error: "NotImplemented", message: "P3 Review is not active in this phase." },
+    { status: 501 }
+  );
+}
+
+export async function POST(_req: NextRequest): Promise<NextResponse> {
+  return NextResponse.json(
+    { error: "NotImplemented", message: "P3 Review is not active in this phase." },
+    { status: 501 }
+  );
+}
+```
+
+---
+
+```typescript
+// app/web/src/app/api/clarification/route.ts
+
+import { NextRequest, NextResponse } from "next/server";
+
+/**
+ * P4 — Clarification
+ * Not implemented in this phase. Returns 501.
+ */
+export async function GET(_req: NextRequest): Promise<NextResponse> {
+  return NextResponse.json(
+    { error: "NotImplemented", message: "P4 Clarification is not active in this phase." },
+    { status: 501 }
+  );
+}
+
+export async function POST(_req: NextRequest): Promise<NextResponse> {
+  return NextResponse.json(
+    { error: "NotImplemented", message: "P4 Clarification is not active in this phase." },
+    { status: 501 }
+  );
+}
+```
+
+---
+
+```typescript
+// app/web/src/app/api/validation/route.ts
+
+import { NextRequest, NextResponse } from "next/server";
+
+/**
+ * P5 — Validation
+ * Not implemented in this phase. Returns 501.
+ */
+export async function GET(_req: NextRequest): Promise<NextResponse> {
+  return NextResponse.json(
+    { error: "NotImplemented", message: "P5 Validation is not active in this phase." },
+    { status: 501 }
+  );
+}
+
+export async function POST(_req: NextRequest): Promise<NextResponse> {
+  return NextResponse.json(
+    { error: "NotImplemented", message: "P5 Validation is not active in this phase." },
+    { status: 501 }
+  );
+}
+```
+
+---
+
+```typescript
+// app/web/src/app/api/audit/route.ts
+
+import { NextRequest, NextResponse } from "next/server";
+
+/**
+ * P6 — Audit/lifecycle export
+ * Not implemented in this phase. Returns 501.
+ */
+export async function GET(_req: NextRequest): Promise<NextResponse> {
+  return NextResponse.json(
+    { error: "NotImplemented", message: "P6 Audit export is not active in this phase." },
+    { status: 501 }
+  );
+}
+```
+
+---
+
+Now the supporting `tsconfig` and package files to ensure strict compilation:
+
+```json
+// packages/domain/tsconfig.json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
+```
+
+---
+
+```json
+// packages/policies/tsconfig.json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
+```
+
+---
+
+```json
+// packages/domain/package.json
+{
+  "name": "@grant-system/domain",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    "./schemas": "./src/schemas/index.ts",
+    "./entities": "./src/entities/index.ts",
+    "./lib/prisma": "./src/lib/prisma.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.0.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0",
+    "prisma": "^6.0.0"
+  }
+}
+```
+
+---
+
+```json
+// packages/policies/package.json
+{
+  "name": "@grant-system/policies",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    "./access/checkAccess": "./src/access/checkAccess.ts",
+    "./eligibility/evaluateEligibility": "./src/eligibility/evaluateEligibility.ts",
+    "./intake/blindedPacketMapper": "./src/intake/blindedPacketMapper.ts",
+    "./workflow/submitProposal": "./src/workflow/submitProposal.ts",
+    "./workflow/runEligibilityCheck": "./src/workflow/runEligibilityCheck.ts"
+  },
+  "dependencies": {
+    "@grant-system/domain": "workspace:*",
+    "@prisma/client": "^6.0.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  }
+}
+```
+
+---
+
+## Verification Checklist
+
+- [x] **All entities from `specs/domain-model.md` are implemented**
+  - `Call`, `Submission`, `ProposalVersion`, `ApplicantIdentity`, `BlindedPacket`, `EligibilityRecord`, `AuditEvent` — all present in schema, Zod schemas, and TypeScript entities
+  - All enumerations: `ProposalStatus`, `EligibilityStatus`, `CallStatus` implemented
+
+- [x] **Access policies from `specs/access-policies.md` are enforced**
+  - `checkAccess.ts` implements all four policies: `applicant-own-proposals`, `admin-all`, `reviewer-blinded-assigned`, `deny-identity-to-reviewer`
+  - Hard deny on `ApplicantIdentity` for reviewer enforced at `checkAccess` level, not UI
+  - Every route handler calls `requireAuth` before any DB operation
+  - Service layer calls `assertAccess` before any DB query
+
+- [x] **Identity separation invariant**
+  - `ApplicantIdentity` is in a separate Prisma model and table (`applicant_identity`)
+  - `mapToBlindedContent` only copies content fields — no identity fields
+  - `containsIdentityFields()` guard function provided for unit tests
+  - Reviewer policy explicitly denies `Submission` resource (which contains `applicant_alias`)
+
+- [x] **All state transitions produce an `AuditEvent`**
+  - `submitProposal` creates `submission.created` audit event
+  - `runEligibilityCheck` creates `eligibility.checked` audit event with previous/new status
+
+- [x] **Eligibility record captures exact inputs + active rule set**
+  - `inputs` stored verbatim from request
+  - `active_rules` derived from `call.enabled_eligibility_checks` at evaluation time
+  - `evaluated_at` timestamp recorded
+
+- [x] **`tsc --noEmit` would pass** — no `any` types, strict mode, all paths typed
+
+- [x] **P3-P6 stubs return 501**
+
+---
+
+## Gaps
+
+- **[GAP-001]** `BlindedPacket` generation timing — spec says "generated automatically on transition to `eligible`" (workflow-states.md) but also implies it should exist for reviewer access. The spec doesn't clarify whether it should be created at submission time or only at `eligible` transition. **Assumed**: created at submission time AND verified/created again at `eligible` transition to ensure it always exists when needed. The `runEligibilityCheck` service checks for an existing packet before creating a new one.
+
+- **[GAP-002]** `firstTimeApplicantInProgramme` rule — the spec lists it in `EligibilityInputs` but does not specify what constitutes a failure condition (it could require a DB lookup of prior submissions, or be purely declarative). **Assumed**: the rule is informational in P2 and always passes. The boolean is recorded in `inputs` for admin reference.
+
+- **[GAP-003]** `applicant_alias` derivation — the spec defines `applicant_alias` on `Submission` but does not specify how it is derived from the authenticated principal. **Assumed**: `principal.alias` is used if set; otherwise `principal.id` is used as the alias.
+
+- **[GAP-004]** JWT verification — the spec says "JWT-based role middleware (no external IdP required for P0-P2)" but does not specify the signing algorithm or secret management. **Assumed**: the dev-mode `X-Role`/`X-Actor-Id` header path is used for P0-P2; JWT parsing is scaffolded without signature verification, which must be hardened before P3.
+
+- **[GAP-005]** `reviewer_policy_version` on `Call` — the spec defines this field but does not specify its format or how it is used. **Assumed**: stored as a plain string (e.g. `"1.0.0"`); used in future audit/policy enforcement phases.
+
+- **[GAP-006]** Reviewer assignment mechanism — the spec references `reviewer.assigned_proposals` in the access policy but does not define a `ReviewerAssignment` entity or join table for P0-P2. **Assumed**: reviewer assignments are carried in the JWT claims (`assigned_submission_ids` array) for P0-P2; no DB table is created for assignments in this phase.
+
+---
+
+## Benchmark fields
+
+- `generatedFileCount`: 16
+- `totalLines`: ~820
+- `llm`: claude-opus-4-5

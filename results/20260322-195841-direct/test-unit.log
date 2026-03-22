@@ -1,0 +1,505 @@
+
+> openstrux-uc-grant-workflow@0.1.0 test:unit /home/homofaber/proj/openstrux-uc-grant-workflow-bench-20260322-195841-direct
+> vitest run tests/unit -- --reporter=json --outputFile=/home/homofaber/proj/openstrux-uc-grant-workflow/results/20260322-195841-direct/test-unit.json
+
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+ RUN  v1.6.1 /home/homofaber/proj/openstrux-uc-grant-workflow-bench-20260322-195841-direct
+
+ ❯ tests/unit/blindedPacket.test.ts  (0 test)
+ ❯ tests/unit/workflowTransitions.test.ts  (0 test)
+ ❯ tests/unit/accessPolicy.test.ts  (10 tests | 10 failed) 11ms
+   ❯ tests/unit/accessPolicy.test.ts > checkAccess > reviewer cannot access ApplicantIdentity > denies reviewer access to ApplicantIdentity read
+     → Cannot read properties of undefined (reading 'role')
+   ❯ tests/unit/accessPolicy.test.ts > checkAccess > reviewer cannot access ApplicantIdentity > denies reviewer access to ApplicantIdentity write
+     → Cannot read properties of undefined (reading 'role')
+   ❯ tests/unit/accessPolicy.test.ts > checkAccess > admin has full access > allows admin read on Submission
+     → Cannot read properties of undefined (reading 'role')
+   ❯ tests/unit/accessPolicy.test.ts > checkAccess > admin has full access > allows admin write on EligibilityRecord
+     → Cannot read properties of undefined (reading 'role')
+   ❯ tests/unit/accessPolicy.test.ts > checkAccess > admin has full access > allows admin read on ApplicantIdentity
+     → Cannot read properties of undefined (reading 'role')
+   ❯ tests/unit/accessPolicy.test.ts > checkAccess > applicant has limited access > allows applicant read on own Submission
+     → Cannot read properties of undefined (reading 'role')
+   ❯ tests/unit/accessPolicy.test.ts > checkAccess > applicant has limited access > denies applicant read on someone else's Submission
+     → Cannot read properties of undefined (reading 'role')
+   ❯ tests/unit/accessPolicy.test.ts > checkAccess > applicant has limited access > denies applicant write on EligibilityRecord
+     → Cannot read properties of undefined (reading 'role')
+   ❯ tests/unit/accessPolicy.test.ts > checkAccess > reviewer can access assigned blinded packets > allows reviewer read on assigned BlindedPacket
+     → Cannot read properties of undefined (reading 'role')
+   ❯ tests/unit/accessPolicy.test.ts > checkAccess > reviewer can access assigned blinded packets > denies reviewer read on unassigned BlindedPacket
+     → Cannot read properties of undefined (reading 'role')
+ ❯ tests/unit/eligibilityFixtures.test.ts  (3 tests | 3 failed) 12ms
+   ❯ tests/unit/eligibilityFixtures.test.ts > evaluateEligibility (fixture-driven) > fixture: all-pass → eligible
+     → expected 'ineligible' to be 'eligible' // Object.is equality
+   ❯ tests/unit/eligibilityFixtures.test.ts > evaluateEligibility (fixture-driven) > fixture: language-fail → ineligible
+     → Cannot read properties of undefined (reading 'sort')
+   ❯ tests/unit/eligibilityFixtures.test.ts > evaluateEligibility (fixture-driven) > fixture: multiple-fail → ineligible
+     → Cannot read properties of undefined (reading 'sort')
+ ❯ tests/unit/eligibility.test.ts  (10 tests | 10 failed) 16ms
+   ❯ tests/unit/eligibility.test.ts > evaluateEligibility > returns eligible when all active rules pass
+     → expected 'ineligible' to be 'eligible' // Object.is equality
+   ❯ tests/unit/eligibility.test.ts > evaluateEligibility > returns ineligible when submittedInEnglish is false
+     → the given combination of arguments (undefined and string) is invalid for this assertion. You can use an array, a map, an object, a set, a string, or a weakset instead of a string
+   ❯ tests/unit/eligibility.test.ts > evaluateEligibility > returns ineligible when alignedWithCall is false
+     → the given combination of arguments (undefined and string) is invalid for this assertion. You can use an array, a map, an object, a set, a string, or a weakset instead of a string
+   ❯ tests/unit/eligibility.test.ts > evaluateEligibility > returns ineligible when primaryObjectiveIsRd is false
+     → the given combination of arguments (undefined and string) is invalid for this assertion. You can use an array, a map, an object, a set, a string, or a weakset instead of a string
+   ❯ tests/unit/eligibility.test.ts > evaluateEligibility > returns ineligible when meetsEuropeanDimension is false
+     → the given combination of arguments (undefined and string) is invalid for this assertion. You can use an array, a map, an object, a set, a string, or a weakset instead of a string
+   ❯ tests/unit/eligibility.test.ts > evaluateEligibility > accepts not_applicable for meetsEuropeanDimension
+     → expected 'ineligible' to be 'eligible' // Object.is equality
+   ❯ tests/unit/eligibility.test.ts > evaluateEligibility > returns ineligible when budget exceeds call limit
+     → the given combination of arguments (undefined and string) is invalid for this assertion. You can use an array, a map, an object, a set, a string, or a weakset instead of a string
+   ❯ tests/unit/eligibility.test.ts > evaluateEligibility > collects multiple failure reasons
+     → the given combination of arguments (undefined and string) is invalid for this assertion. You can use an array, a map, an object, a set, a string, or a weakset instead of a string
+   ❯ tests/unit/eligibility.test.ts > evaluateEligibility > respects active rule set — inactive rules are not evaluated
+     → expected 'ineligible' to be 'eligible' // Object.is equality
+   ❯ tests/unit/eligibility.test.ts > evaluateEligibility > records exact inputs in result
+     → expected undefined to deeply equal { submittedInEnglish: true, …(5) }
+ ❯ tests/unit/domainEntities.test.ts  (9 tests | 5 failed) 20ms
+   ❯ tests/unit/domainEntities.test.ts > SubmissionSchema > accepts valid submission
+     → expected false to be true // Object.is equality
+   ❯ tests/unit/domainEntities.test.ts > ProposalVersionSchema > accepts valid proposal version
+     → expected false to be true // Object.is equality
+   ❯ tests/unit/domainEntities.test.ts > EligibilityInputsSchema > accepts valid inputs
+     → expected false to be true // Object.is equality
+   ❯ tests/unit/domainEntities.test.ts > EligibilityInputsSchema > accepts not_applicable for meetsEuropeanDimension
+     → expected false to be true // Object.is equality
+   ❯ tests/unit/domainEntities.test.ts > AuditEventSchema > accepts valid audit event
+     → expected false to be true // Object.is equality
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/unit/blindedPacket.test.ts [ tests/unit/blindedPacket.test.ts ]
+Error: Failed to load url ../../packages/policies/src/workflow/createBlindedPacket (resolved id: ../../packages/policies/src/workflow/createBlindedPacket) in /home/homofaber/proj/openstrux-uc-grant-workflow-bench-20260322-195841-direct/tests/unit/blindedPacket.test.ts. Does the file exist?
+ ❯ loadAndTransform node_modules/.pnpm/vite@5.4.21_@types+node@20.19.37/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51969:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/30]⎯
+
+ FAIL  tests/unit/workflowTransitions.test.ts [ tests/unit/workflowTransitions.test.ts ]
+Error: Failed to load url ../../packages/policies/src/workflow/transitions (resolved id: ../../packages/policies/src/workflow/transitions) in /home/homofaber/proj/openstrux-uc-grant-workflow-bench-20260322-195841-direct/tests/unit/workflowTransitions.test.ts. Does the file exist?
+ ❯ loadAndTransform node_modules/.pnpm/vite@5.4.21_@types+node@20.19.37/node_modules/vite/dist/node/chunks/dep-BK3b2jBa.js:51969:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/30]⎯
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 28 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/unit/accessPolicy.test.ts > checkAccess > reviewer cannot access ApplicantIdentity > denies reviewer access to ApplicantIdentity read
+TypeError: Cannot read properties of undefined (reading 'role')
+ ❯ Module.checkAccess packages/policies/src/access/checkAccess.ts:98:19
+     96|   // 1. Hard deny rules — evaluated unconditionally before anything el…
+     97|   for (const rule of HARD_DENY_RULES) {
+     98|     if (principal.role === rule.role && resourceType === rule.resource…
+       |                   ^
+     99|       return { allowed: false, reason: rule.reason };
+    100|     }
+ ❯ tests/unit/accessPolicy.test.ts:13:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/30]⎯
+
+ FAIL  tests/unit/accessPolicy.test.ts > checkAccess > reviewer cannot access ApplicantIdentity > denies reviewer access to ApplicantIdentity write
+TypeError: Cannot read properties of undefined (reading 'role')
+ ❯ Module.checkAccess packages/policies/src/access/checkAccess.ts:98:19
+     96|   // 1. Hard deny rules — evaluated unconditionally before anything el…
+     97|   for (const rule of HARD_DENY_RULES) {
+     98|     if (principal.role === rule.role && resourceType === rule.resource…
+       |                   ^
+     99|       return { allowed: false, reason: rule.reason };
+    100|     }
+ ❯ tests/unit/accessPolicy.test.ts:23:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/30]⎯
+
+ FAIL  tests/unit/accessPolicy.test.ts > checkAccess > admin has full access > allows admin read on Submission
+TypeError: Cannot read properties of undefined (reading 'role')
+ ❯ Module.checkAccess packages/policies/src/access/checkAccess.ts:98:19
+     96|   // 1. Hard deny rules — evaluated unconditionally before anything el…
+     97|   for (const rule of HARD_DENY_RULES) {
+     98|     if (principal.role === rule.role && resourceType === rule.resource…
+       |                   ^
+     99|       return { allowed: false, reason: rule.reason };
+    100|     }
+ ❯ tests/unit/accessPolicy.test.ts:34:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/30]⎯
+
+ FAIL  tests/unit/accessPolicy.test.ts > checkAccess > admin has full access > allows admin write on EligibilityRecord
+TypeError: Cannot read properties of undefined (reading 'role')
+ ❯ Module.checkAccess packages/policies/src/access/checkAccess.ts:98:19
+     96|   // 1. Hard deny rules — evaluated unconditionally before anything el…
+     97|   for (const rule of HARD_DENY_RULES) {
+     98|     if (principal.role === rule.role && resourceType === rule.resource…
+       |                   ^
+     99|       return { allowed: false, reason: rule.reason };
+    100|     }
+ ❯ tests/unit/accessPolicy.test.ts:39:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/30]⎯
+
+ FAIL  tests/unit/accessPolicy.test.ts > checkAccess > admin has full access > allows admin read on ApplicantIdentity
+TypeError: Cannot read properties of undefined (reading 'role')
+ ❯ Module.checkAccess packages/policies/src/access/checkAccess.ts:98:19
+     96|   // 1. Hard deny rules — evaluated unconditionally before anything el…
+     97|   for (const rule of HARD_DENY_RULES) {
+     98|     if (principal.role === rule.role && resourceType === rule.resource…
+       |                   ^
+     99|       return { allowed: false, reason: rule.reason };
+    100|     }
+ ❯ tests/unit/accessPolicy.test.ts:44:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/30]⎯
+
+ FAIL  tests/unit/accessPolicy.test.ts > checkAccess > applicant has limited access > allows applicant read on own Submission
+TypeError: Cannot read properties of undefined (reading 'role')
+ ❯ Module.checkAccess packages/policies/src/access/checkAccess.ts:98:19
+     96|   // 1. Hard deny rules — evaluated unconditionally before anything el…
+     97|   for (const rule of HARD_DENY_RULES) {
+     98|     if (principal.role === rule.role && resourceType === rule.resource…
+       |                   ^
+     99|       return { allowed: false, reason: rule.reason };
+    100|     }
+ ❯ tests/unit/accessPolicy.test.ts:51:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/30]⎯
+
+ FAIL  tests/unit/accessPolicy.test.ts > checkAccess > applicant has limited access > denies applicant read on someone else's Submission
+TypeError: Cannot read properties of undefined (reading 'role')
+ ❯ Module.checkAccess packages/policies/src/access/checkAccess.ts:98:19
+     96|   // 1. Hard deny rules — evaluated unconditionally before anything el…
+     97|   for (const rule of HARD_DENY_RULES) {
+     98|     if (principal.role === rule.role && resourceType === rule.resource…
+       |                   ^
+     99|       return { allowed: false, reason: rule.reason };
+    100|     }
+ ❯ tests/unit/accessPolicy.test.ts:61:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/30]⎯
+
+ FAIL  tests/unit/accessPolicy.test.ts > checkAccess > applicant has limited access > denies applicant write on EligibilityRecord
+TypeError: Cannot read properties of undefined (reading 'role')
+ ❯ Module.checkAccess packages/policies/src/access/checkAccess.ts:98:19
+     96|   // 1. Hard deny rules — evaluated unconditionally before anything el…
+     97|   for (const rule of HARD_DENY_RULES) {
+     98|     if (principal.role === rule.role && resourceType === rule.resource…
+       |                   ^
+     99|       return { allowed: false, reason: rule.reason };
+    100|     }
+ ❯ tests/unit/accessPolicy.test.ts:71:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/30]⎯
+
+ FAIL  tests/unit/accessPolicy.test.ts > checkAccess > reviewer can access assigned blinded packets > allows reviewer read on assigned BlindedPacket
+TypeError: Cannot read properties of undefined (reading 'role')
+ ❯ Module.checkAccess packages/policies/src/access/checkAccess.ts:98:19
+     96|   // 1. Hard deny rules — evaluated unconditionally before anything el…
+     97|   for (const rule of HARD_DENY_RULES) {
+     98|     if (principal.role === rule.role && resourceType === rule.resource…
+       |                   ^
+     99|       return { allowed: false, reason: rule.reason };
+    100|     }
+ ❯ tests/unit/accessPolicy.test.ts:82:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/30]⎯
+
+ FAIL  tests/unit/accessPolicy.test.ts > checkAccess > reviewer can access assigned blinded packets > denies reviewer read on unassigned BlindedPacket
+TypeError: Cannot read properties of undefined (reading 'role')
+ ❯ Module.checkAccess packages/policies/src/access/checkAccess.ts:98:19
+     96|   // 1. Hard deny rules — evaluated unconditionally before anything el…
+     97|   for (const rule of HARD_DENY_RULES) {
+     98|     if (principal.role === rule.role && resourceType === rule.resource…
+       |                   ^
+     99|       return { allowed: false, reason: rule.reason };
+    100|     }
+ ❯ tests/unit/accessPolicy.test.ts:92:22
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/30]⎯
+
+ FAIL  tests/unit/domainEntities.test.ts > SubmissionSchema > accepts valid submission
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ tests/unit/domainEntities.test.ts:25:28
+     23|       submittedAt: new Date().toISOString(),
+     24|     });
+     25|     expect(result.success).toBe(true);
+       |                            ^
+     26|   });
+     27| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/30]⎯
+
+ FAIL  tests/unit/domainEntities.test.ts > ProposalVersionSchema > accepts valid proposal version
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ tests/unit/domainEntities.test.ts:63:28
+     61|       tasksBreakdown: "T1: Implementation — 3 months.",
+     62|     });
+     63|     expect(result.success).toBe(true);
+       |                            ^
+     64|   });
+     65| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/30]⎯
+
+ FAIL  tests/unit/domainEntities.test.ts > EligibilityInputsSchema > accepts valid inputs
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ tests/unit/domainEntities.test.ts:92:28
+     90|       firstTimeApplicantInProgramme: true,
+     91|     });
+     92|     expect(result.success).toBe(true);
+       |                            ^
+     93|   });
+     94| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/30]⎯
+
+ FAIL  tests/unit/domainEntities.test.ts > EligibilityInputsSchema > accepts not_applicable for meetsEuropeanDimension
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ tests/unit/domainEntities.test.ts:104:28
+    102|       firstTimeApplicantInProgramme: false,
+    103|     });
+    104|     expect(result.success).toBe(true);
+       |                            ^
+    105|   });
+    106| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/30]⎯
+
+ FAIL  tests/unit/domainEntities.test.ts > AuditEventSchema > accepts valid audit event
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ❯ tests/unit/domainEntities.test.ts:131:28
+    129|       timestamp: new Date().toISOString(),
+    130|     });
+    131|     expect(result.success).toBe(true);
+       |                            ^
+    132|   });
+    133| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/30]⎯
+
+ FAIL  tests/unit/eligibility.test.ts > evaluateEligibility > returns eligible when all active rules pass
+AssertionError: expected 'ineligible' to be 'eligible' // Object.is equality
+
+- Expected
++ Received
+
+- eligible
++ ineligible
+
+ ❯ tests/unit/eligibility.test.ts:32:27
+     30|   it("returns eligible when all active rules pass", () => {
+     31|     const result = evaluateEligibility(VALID_INPUTS, ALL_RULES);
+     32|     expect(result.status).toBe("eligible");
+       |                           ^
+     33|     expect(result.failureReasons).toHaveLength(0);
+     34|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/30]⎯
+
+ FAIL  tests/unit/eligibility.test.ts > evaluateEligibility > returns ineligible when submittedInEnglish is false
+AssertionError: the given combination of arguments (undefined and string) is invalid for this assertion. You can use an array, a map, an object, a set, a string, or a weakset instead of a string
+ ❯ tests/unit/eligibility.test.ts:40:35
+     38|     const result = evaluateEligibility(inputs, ALL_RULES);
+     39|     expect(result.status).toBe("ineligible");
+     40|     expect(result.failureReasons).toContain("submittedInEnglish");
+       |                                   ^
+     41|   });
+     42| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/30]⎯
+
+ FAIL  tests/unit/eligibility.test.ts > evaluateEligibility > returns ineligible when alignedWithCall is false
+AssertionError: the given combination of arguments (undefined and string) is invalid for this assertion. You can use an array, a map, an object, a set, a string, or a weakset instead of a string
+ ❯ tests/unit/eligibility.test.ts:47:35
+     45|     const result = evaluateEligibility(inputs, ALL_RULES);
+     46|     expect(result.status).toBe("ineligible");
+     47|     expect(result.failureReasons).toContain("alignedWithCall");
+       |                                   ^
+     48|   });
+     49| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/30]⎯
+
+ FAIL  tests/unit/eligibility.test.ts > evaluateEligibility > returns ineligible when primaryObjectiveIsRd is false
+AssertionError: the given combination of arguments (undefined and string) is invalid for this assertion. You can use an array, a map, an object, a set, a string, or a weakset instead of a string
+ ❯ tests/unit/eligibility.test.ts:54:35
+     52|     const result = evaluateEligibility(inputs, ALL_RULES);
+     53|     expect(result.status).toBe("ineligible");
+     54|     expect(result.failureReasons).toContain("primaryObjectiveIsRd");
+       |                                   ^
+     55|   });
+     56| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/30]⎯
+
+ FAIL  tests/unit/eligibility.test.ts > evaluateEligibility > returns ineligible when meetsEuropeanDimension is false
+AssertionError: the given combination of arguments (undefined and string) is invalid for this assertion. You can use an array, a map, an object, a set, a string, or a weakset instead of a string
+ ❯ tests/unit/eligibility.test.ts:61:35
+     59|     const result = evaluateEligibility(inputs, ALL_RULES);
+     60|     expect(result.status).toBe("ineligible");
+     61|     expect(result.failureReasons).toContain("meetsEuropeanDimension");
+       |                                   ^
+     62|   });
+     63| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/30]⎯
+
+ FAIL  tests/unit/eligibility.test.ts > evaluateEligibility > accepts not_applicable for meetsEuropeanDimension
+AssertionError: expected 'ineligible' to be 'eligible' // Object.is equality
+
+- Expected
++ Received
+
+- eligible
++ ineligible
+
+ ❯ tests/unit/eligibility.test.ts:67:27
+     65|     const inputs = { ...VALID_INPUTS, meetsEuropeanDimension: "not_app…
+     66|     const result = evaluateEligibility(inputs, ALL_RULES);
+     67|     expect(result.status).toBe("eligible");
+       |                           ^
+     68|   });
+     69| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/30]⎯
+
+ FAIL  tests/unit/eligibility.test.ts > evaluateEligibility > returns ineligible when budget exceeds call limit
+AssertionError: the given combination of arguments (undefined and string) is invalid for this assertion. You can use an array, a map, an object, a set, a string, or a weakset instead of a string
+ ❯ tests/unit/eligibility.test.ts:74:35
+     72|     const result = evaluateEligibility(inputs, ALL_RULES);
+     73|     expect(result.status).toBe("ineligible");
+     74|     expect(result.failureReasons).toContain("requestedBudgetKEur");
+       |                                   ^
+     75|   });
+     76| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[24/30]⎯
+
+ FAIL  tests/unit/eligibility.test.ts > evaluateEligibility > collects multiple failure reasons
+AssertionError: the given combination of arguments (undefined and string) is invalid for this assertion. You can use an array, a map, an object, a set, a string, or a weakset instead of a string
+ ❯ tests/unit/eligibility.test.ts:85:35
+     83|     const result = evaluateEligibility(inputs, ALL_RULES);
+     84|     expect(result.status).toBe("ineligible");
+     85|     expect(result.failureReasons).toContain("submittedInEnglish");
+       |                                   ^
+     86|     expect(result.failureReasons).toContain("alignedWithCall");
+     87|     expect(result.failureReasons.length).toBeGreaterThanOrEqual(2);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[25/30]⎯
+
+ FAIL  tests/unit/eligibility.test.ts > evaluateEligibility > respects active rule set — inactive rules are not evaluated
+AssertionError: expected 'ineligible' to be 'eligible' // Object.is equality
+
+- Expected
++ Received
+
+- eligible
++ ineligible
+
+ ❯ tests/unit/eligibility.test.ts:95:27
+     93|     const activeRules = ["alignedWithCall", "primaryObjectiveIsRd"];
+     94|     const result = evaluateEligibility(inputs, activeRules);
+     95|     expect(result.status).toBe("eligible");
+       |                           ^
+     96|     expect(result.failureReasons).toHaveLength(0);
+     97|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[26/30]⎯
+
+ FAIL  tests/unit/eligibility.test.ts > evaluateEligibility > records exact inputs in result
+AssertionError: expected undefined to deeply equal { submittedInEnglish: true, …(5) }
+
+- Expected: 
+Object {
+  "alignedWithCall": true,
+  "firstTimeApplicantInProgramme": true,
+  "meetsEuropeanDimension": "true",
+  "primaryObjectiveIsRd": true,
+  "requestedBudgetKEur": 50,
+  "submittedInEnglish": true,
+}
+
++ Received: 
+undefined
+
+ ❯ tests/unit/eligibility.test.ts:101:27
+     99|   it("records exact inputs in result", () => {
+    100|     const result = evaluateEligibility(VALID_INPUTS, ALL_RULES);
+    101|     expect(result.inputs).toEqual(VALID_INPUTS);
+       |                           ^
+    102|     expect(result.activeRules).toEqual(ALL_RULES);
+    103|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[27/30]⎯
+
+ FAIL  tests/unit/eligibilityFixtures.test.ts > evaluateEligibility (fixture-driven) > fixture: all-pass → eligible
+AssertionError: expected 'ineligible' to be 'eligible' // Object.is equality
+
+- Expected
++ Received
+
+- eligible
++ ineligible
+
+ ❯ tests/unit/eligibilityFixtures.test.ts:34:29
+     32|     it(`fixture: ${name} → ${data.expectedStatus}`, () => {
+     33|       const result = evaluateEligibility(data.inputs, data.activeRules…
+     34|       expect(result.status).toBe(data.expectedStatus);
+       |                             ^
+     35|       expect(result.failureReasons.sort()).toEqual(data.expectedFailur…
+     36|     });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[28/30]⎯
+
+ FAIL  tests/unit/eligibilityFixtures.test.ts > evaluateEligibility (fixture-driven) > fixture: language-fail → ineligible
+ FAIL  tests/unit/eligibilityFixtures.test.ts > evaluateEligibility (fixture-driven) > fixture: multiple-fail → ineligible
+TypeError: Cannot read properties of undefined (reading 'sort')
+ ❯ tests/unit/eligibilityFixtures.test.ts:35:36
+     33|       const result = evaluateEligibility(data.inputs, data.activeRules…
+     34|       expect(result.status).toBe(data.expectedStatus);
+     35|       expect(result.failureReasons.sort()).toEqual(data.expectedFailur…
+       |                                    ^
+     36|     });
+     37|   }
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[29/30]⎯
+
+ Test Files  6 failed (6)
+      Tests  28 failed | 4 passed (32)
+   Start at  21:02:07
+   Duration  384ms (transform 213ms, setup 0ms, collect 296ms, tests 59ms, environment 1ms, prepare 465ms)
+
+ ELIFECYCLE  Command failed with exit code 1.
