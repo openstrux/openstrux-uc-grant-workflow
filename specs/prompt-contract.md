@@ -1,31 +1,36 @@
 # Prompt Contract
 
-This document defines the interface between the specification (`specs/`) and the prompt sets (`prompts/`).
+Defines the interface between specifications (`specs/`) and prompt sets (`prompts/`).
 
-## What the prompts reference
+## Prompt structure
 
-Both generation paths reference the same specifications in `specs/`:
+Both paths share the same base, differing only in generation method:
+
+```
+prompts/shared/system.md        # role, stack, principles, what exists
+prompts/shared/constraints.md   # hard constraints, naming, code style
+prompts/shared/generate.md      # specs to read, tasks to execute, verification, gap log
+prompts/<path>/generate.md      # path-specific: output format and toolchain (direct or openstrux)
+prompts/shared/task-format.md   # output format for generated files
+```
+
+## What the shared prompts reference
 
 - `specs/domain-model.md` — entity definitions, field names, types
 - `specs/workflow-states.md` — state machine and access rules per state
 - `specs/access-policies.md` — principal definitions and enforcement points
+- `specs/mvp-profile.md` — active phases, enabled checks
+- `openspec/changes/backend-generation/tasks.md` — task checklist
 
-## What the prompts differ on
+## What differs per path
 
-| Concern | direct/ | openstrux/ |
+| Concern | `direct/` | `openstrux/` |
 |---|---|---|
-| Target | TypeScript files directly | `.strux` panels → `strux build` |
-| Output dir | `output/direct/` | `.openstrux/build/` |
-| Format | Prose instructions for LLM | Prose + structured panel authoring |
+| Generation method | LLM writes TypeScript directly | `.strux` → `strux build` → TypeScript |
+| Output location | `output/direct/` | `.openstrux/build/` + `output/openstrux/` |
+| Extra context | — | Language reference in `../openstrux-spec/` |
+| Gap types | GAP (functional) | GAP (functional) + DOC (language docs) |
 
-## Stability guarantee
+## Stability
 
-`specs/` content is stable once a phase is frozen. Prompts may be revised between benchmark runs, but the spec content they reference does not change within a version.
-
-## Phase-to-file mapping
-
-| Phase | Spec sections | Prompt files |
-|---|---|---|
-| P0 | Domain model — all entities | p0-domain-model.md |
-| P1 | FR-P1-* (intake, data separation, blinded packet) | p1-intake.md |
-| P2 | FR-P2-* (eligibility gate, inputs, rule logic) | p2-eligibility.md |
+`specs/` content is frozen per version. Prompts may be revised between benchmark runs.
