@@ -1,0 +1,9 @@
+{
+  "callId": "eu-oss-fund-2026",
+  "applicantAlias": "anon-001",
+  "title": "Minimal test proposal",
+  "abstract": "A minimal proposal for testing purposes.",
+  "requestedBudgetKEur": 1,
+  "budgetUsage": "Development.",
+  "tasksBreakdown": "T1: Implementation — 1 month."
+}

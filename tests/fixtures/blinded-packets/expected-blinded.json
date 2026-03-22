@@ -1,0 +1,5 @@
+{
+  "_comment": "Golden output: a blinded packet must contain these fields and MUST NOT contain identity fields.",
+  "mustContain": ["title", "abstract", "requestedBudgetKEur", "budgetUsage", "tasksBreakdown"],
+  "mustExclude": ["legalName", "email", "country", "organisation", "applicantAlias", "applicantIdentity"]
+}

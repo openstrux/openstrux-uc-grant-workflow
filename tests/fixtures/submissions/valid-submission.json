@@ -1,0 +1,9 @@
+{
+  "callId": "eu-oss-fund-2026",
+  "applicantAlias": "researcher-42",
+  "title": "Privacy-preserving DNS resolver for community networks",
+  "abstract": "This project develops an open-source DNS resolver that uses encrypted client queries and distributed resolution to preserve user privacy while maintaining performance suitable for community-run network infrastructure.",
+  "requestedBudgetKEur": 50,
+  "budgetUsage": "Development (70%), testing and security audit (20%), documentation and community outreach (10%).",
+  "tasksBreakdown": "T1: Core resolver implementation — 3 months, 1 FTE @ 5k/month\nT2: Encryption layer — 2 months, 1 FTE @ 5k/month\nT3: Performance testing — 1 month, 0.5 FTE @ 5k/month\nT4: Documentation and deployment guides — 1 month, 0.5 FTE @ 5k/month"
+}

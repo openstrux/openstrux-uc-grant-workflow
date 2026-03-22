@@ -1,0 +1,13 @@
+{
+  "inputs": {
+    "submittedInEnglish": false,
+    "alignedWithCall": false,
+    "primaryObjectiveIsRd": true,
+    "meetsEuropeanDimension": "false",
+    "requestedBudgetKEur": 600,
+    "firstTimeApplicantInProgramme": true
+  },
+  "activeRules": ["submittedInEnglish", "alignedWithCall", "primaryObjectiveIsRd", "meetsEuropeanDimension", "requestedBudgetKEur"],
+  "expectedStatus": "ineligible",
+  "expectedFailureReasons": ["submittedInEnglish", "alignedWithCall", "meetsEuropeanDimension", "requestedBudgetKEur"]
+}

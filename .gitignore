@@ -1,0 +1,11 @@
+node_modules/
+.next/
+.openstrux/
+dist/
+build/
+.env
+.env.*
+!.env.example
+output/direct/
+output/openstrux/
+results/*.zip

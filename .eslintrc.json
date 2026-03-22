@@ -1,0 +1,27 @@
+{
+  "root": true,
+  "env": { "node": true, "es2022": true },
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": { "project": true },
+  "plugins": ["@typescript-eslint"],
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:@typescript-eslint/recommended-type-checked",
+    "prettier"
+  ],
+  "rules": {
+    "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+    "@typescript-eslint/no-explicit-any": "error",
+    "@typescript-eslint/consistent-type-imports": ["error", { "prefer": "type-imports" }]
+  },
+  "overrides": [
+    {
+      "files": ["app/web/**/*.tsx"],
+      "extends": ["plugin:react/recommended", "plugin:react-hooks/recommended"],
+      "settings": { "react": { "version": "detect" } },
+      "rules": { "react/react-in-jsx-scope": "off" }
+    }
+  ],
+  "ignorePatterns": ["node_modules/", ".next/", "dist/", "build/", ".openstrux/", "output/"]
+}

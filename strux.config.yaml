@@ -1,0 +1,16 @@
+# Openstrux build configuration (ADR-019)
+# Used by `strux build` for the Openstrux-assisted generation path.
+
+target:
+  base: typescript@~5.5
+  framework: next@^15.0
+  orm: prisma@^6.0
+  validation: zod@^3.23
+  runtime: node@>=20
+
+source:
+  - "pipelines/**/*.strux"
+  - "specs/**/*.strux"
+
+output:
+  dir: ".openstrux/build"

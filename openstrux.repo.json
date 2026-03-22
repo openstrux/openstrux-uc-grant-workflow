@@ -1,0 +1,10 @@
+{
+  "type": "use-case",
+  "name": "openstrux-uc-grant-workflow",
+  "version": "0.1.0",
+  "description": "Privacy-first grant review workflow — EU open-source fund MVP",
+  "depends_on": [
+    "openstrux-spec@0.5.x",
+    "openstrux-core@0.6.x"
+  ]
+}
