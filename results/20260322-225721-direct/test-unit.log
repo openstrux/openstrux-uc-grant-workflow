@@ -1,7 +1,0 @@
-
-> openstrux-uc-grant-workflow@0.1.0 test:unit /home/homofaber/proj/openstrux-uc-grant-workflow-bench-20260322-225721-direct
-> vitest run tests/unit --reporter=json --outputFile=/home/homofaber/proj/openstrux-uc-grant-workflow/results/20260322-225721-direct/test-unit.json
-
-[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
-JSON report written to /home/homofaber/proj/openstrux-uc-grant-workflow/results/20260322-225721-direct/test-unit.json
- ELIFECYCLE  Command failed with exit code 1.

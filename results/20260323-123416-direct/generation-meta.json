@@ -1,0 +1,10 @@
+{
+  "model": "glm-5",
+  "provider": "openai",
+  "inputTokens": 896164,
+  "outputTokens": 11514,
+  "turns": 45,
+  "exitSubtype": "success",
+  "timeSeconds": 676.105,
+  "retries": 45
+}
