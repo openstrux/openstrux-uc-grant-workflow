@@ -14,10 +14,11 @@
     "jsx": "preserve",
     "incremental": true,
     "plugins": [{ "name": "next" }],
+    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@openstrux/build": [".openstrux/build"],
-      "@openstrux/build/*": [".openstrux/build/*"]
+      "@openstrux/build": ["./.openstrux/build"],
+      "@openstrux/build/*": ["./.openstrux/build/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

@@ -91,3 +91,43 @@ export function isValidTransition(_from: string, _to: string): boolean {
 export function getNextStatus(_currentStatus: string, _event: string): string {
   throw new Error("Not implemented — replace via backend generation");
 }
+
+// ---------------------------------------------------------------------------
+// Access control (pure — no DB)
+// ---------------------------------------------------------------------------
+
+export interface AccessPrincipal {
+  role: "applicant" | "admin" | "reviewer" | "validator" | "auditor";
+  userId: string;
+}
+
+export type ResourceType =
+  | "Submission"
+  | "ProposalVersion"
+  | "ApplicantIdentity"
+  | "BlindedPacket"
+  | "EligibilityRecord"
+  | "AuditEvent";
+
+/**
+ * Enforce access policies from specs/access-policies.md.
+ *
+ * Rules (in priority order):
+ *   1. admin-all: admin may perform any action on any resource.
+ *   2. deny-identity-to-reviewer: reviewer is ALWAYS denied ApplicantIdentity (hard deny).
+ *   3. reviewer-blinded-assigned: reviewer may read BlindedPacket.
+ *   4. applicant-own-proposals: applicant may read/write own Submission
+ *      where context.ownerId === principal.userId (excludes BlindedPacket).
+ *   5. auditor: read-only access to AuditEvent.
+ *   6. Default: deny.
+ *
+ * @param context.ownerId — userId of the resource owner (required for applicant own-resource checks)
+ */
+export function checkAccess(
+  _principal: AccessPrincipal,
+  _resource: ResourceType,
+  _action: "read" | "write" | "delete",
+  _context?: { ownerId?: string },
+): boolean {
+  throw new Error("Not implemented — replace via backend generation");
+}
