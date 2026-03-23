@@ -1,0 +1,10 @@
+{
+  "fileCount": 22,
+  "model": "claude-sonnet-4-6",
+  "inputTokens": 202572,
+  "outputTokens": 53821,
+  "timeSeconds": 708.4780000000001,
+  "retries": 5,
+  "finalPassed": 5,
+  "finalTotal": 32
+}

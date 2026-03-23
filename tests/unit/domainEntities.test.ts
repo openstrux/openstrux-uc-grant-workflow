@@ -1,8 +1,9 @@
 /**
- * Unit tests for domain entity validation.
+ * Contract tests for domain Zod schemas.
  *
- * Tests Zod schemas in packages/domain/src/schemas/ to ensure
- * all entities match specs/domain-model.md.
+ * Validates that the shared schemas in packages/domain accept and reject
+ * data according to specs/domain-model.md. These are the types both
+ * front-end and back-end depend on.
  */
 
 import { describe, it, expect } from "vitest";
@@ -11,6 +12,9 @@ import {
   ProposalVersionSchema,
   EligibilityInputsSchema,
   AuditEventSchema,
+  IntakeRequestSchema,
+  EligibilityRequestSchema,
+  EligibilityResponseSchema,
 } from "../../packages/domain/src/schemas";
 
 describe("SubmissionSchema", () => {
@@ -127,6 +131,76 @@ describe("AuditEventSchema", () => {
       targetId: "sub-001",
       payload: {},
       timestamp: new Date().toISOString(),
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("IntakeRequestSchema", () => {
+  it("accepts valid intake request", () => {
+    const result = IntakeRequestSchema.safeParse({
+      callId: "eu-oss-fund-2026",
+      applicantAlias: "researcher-42",
+      title: "Privacy-preserving DNS resolver",
+      abstract: "A DNS resolver that preserves user privacy.",
+      requestedBudgetKEur: 50,
+      budgetUsage: "Development (70%), testing (30%).",
+      tasksBreakdown: "T1: Core implementation — 3 months.",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects zero budget", () => {
+    const result = IntakeRequestSchema.safeParse({
+      callId: "eu-oss-fund-2026",
+      applicantAlias: "researcher-42",
+      title: "Test",
+      abstract: "Test",
+      requestedBudgetKEur: 0,
+      budgetUsage: "N/A",
+      tasksBreakdown: "N/A",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects missing fields", () => {
+    const result = IntakeRequestSchema.safeParse({
+      callId: "eu-oss-fund-2026",
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("EligibilityRequestSchema", () => {
+  it("accepts valid eligibility request", () => {
+    const result = EligibilityRequestSchema.safeParse({
+      submissionId: "sub-001",
+      inputs: {
+        submittedInEnglish: true,
+        alignedWithCall: true,
+        primaryObjectiveIsRd: true,
+        meetsEuropeanDimension: "true",
+        requestedBudgetKEur: 50,
+        firstTimeApplicantInProgramme: true,
+      },
+    });
+    expect(result.success).toBe(true);
+  });
+});
+
+describe("EligibilityResponseSchema", () => {
+  it("accepts eligible response", () => {
+    const result = EligibilityResponseSchema.safeParse({
+      status: "eligible",
+      failureReasons: [],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts ineligible response with reasons", () => {
+    const result = EligibilityResponseSchema.safeParse({
+      status: "ineligible",
+      failureReasons: ["submittedInEnglish", "requestedBudgetKEur"],
     });
     expect(result.success).toBe(true);
   });

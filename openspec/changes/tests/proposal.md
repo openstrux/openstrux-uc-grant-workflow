@@ -4,8 +4,10 @@ Pre-written tests define the acceptance criteria that both generation paths must
 
 ## What Changes
 
-- `tests/unit/` — unit tests for domain entities, policy modules, eligibility rules
-- `tests/integration/` — integration tests for DB + service layer interactions
+- `tests/unit/` — contract tests: domain Zod schemas, pure policy functions (from barrel), golden tests
+- `tests/integration/` — contract tests: service-layer functions with DB verification
+- `tests/e2e/` — end-to-end HTTP tests against running app
+- All tests import only from contract surfaces (domain schemas, policies barrel, service interfaces)
 - All tests use vitest
 
 ## Status: ARCHIVED

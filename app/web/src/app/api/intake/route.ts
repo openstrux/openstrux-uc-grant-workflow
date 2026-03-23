@@ -1,14 +1,16 @@
 /**
  * POST /api/intake
  *
- * Receives a new proposal submission. This route is a stub — the backend
- * generation phase must replace this with a real implementation.
+ * Receives a new proposal submission.
  *
- * Contract:
- *   Body: { callId, applicantAlias, title, abstract, requestedBudgetKEur, budgetUsage, tasksBreakdown }
- *   Response 201: { submissionId: string }
+ * Contract (defined in @grant-workflow/domain):
+ *   Body:         IntakeRequestSchema
+ *   Response 201: IntakeResponseSchema  — { submissionId }
  *   Response 400: { error: string }
- *   Response 501: not yet implemented
+ *   Response 401: unauthenticated
+ *   Response 403: wrong role
+ *
+ * Auth: verifySession(req) — must have role "applicant" or "admin".
  *
  * @generated-stub — replace with real implementation via backend generation
  */

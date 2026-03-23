@@ -1,12 +1,14 @@
 /**
- * Unit tests for workflow state transitions.
+ * Contract tests for workflow state transitions.
  *
  * Tests that state transitions follow specs/workflow-states.md and
  * that invalid transitions are rejected.
+ *
+ * Imports from @grant-workflow/policies barrel.
  */
 
 import { describe, it, expect } from "vitest";
-import { isValidTransition, getNextStatus } from "../../packages/policies/src/workflow/transitions";
+import { isValidTransition, getNextStatus } from "../../packages/policies/src";
 
 describe("workflow transitions", () => {
   it("allows draft → submitted", () => {

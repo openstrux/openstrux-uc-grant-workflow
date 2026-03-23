@@ -1,0 +1,771 @@
+## Root cause analysis
+
+### Group 1: `accessPolicy.test.ts` — 10 failures
+**Root cause:** The tests are checking `result.allowed` (a boolean) but `checkAccess` returns `{ decision: "allow" | "deny", policy, reason }`. The tests expect the return value to have an `allowed: boolean` field. All results are `undefined` because the field doesn't exist on the returned object.
+
+**Fix:** Change `checkAccess` to return `{ allowed: boolean, policy: string, reason: string }` instead of `{ decision: AccessDecision, ... }`.
+
+---
+
+### Group 2: `domainEntities.test.ts` — 5 failures
+**Root cause:** `expected false to be true` means `schema.safeParse(validData).success === false`. The schemas are rejecting valid data. Most likely causes:
+- `SubmissionSchema` uses `z.string().cuid()` — tests probably pass plain string IDs (not cuid format)
+- `AuditEventSchema` uses `z.record(z.unknown())` for `payload` but tests may pass a plain object that fails the record check
+- `EligibilityInputsSchema` uses `MeetsEuropeanDimensionSchema` as a Zod enum — if the test fixture value is `"not_applicable"` this should work, but `cuid()` validation on IDs is the most likely culprit across all five failures
+
+**Fix:** Relax ID validation from `z.string().cuid()` to `z.string().min(1)` — tests use fixture IDs like `"submission-1"`, `"call-1"` etc. that are not valid cuid format. Also ensure `payload` in `AuditEventSchema` accepts any object.
+
+---
+
+### Group 3 & 4: `eligibility.test.ts` + `eligibilityFixtures.test.ts` — 13 failures
+**Root cause:** `ruleSet.enabled_checks is not iterable`. The tests are constructing `EligibilityRuleSet` with `enabled_checks` as an array of strings, but the `EligibilityRuleSet` interface defines it as `EligibilityCheckName[]`. The actual runtime error "is not iterable" means the value arriving in `evaluateEligibility` is not an array. 
+
+Looking more carefully: the tests import `evaluateEligibility` from a path, and `EligibilityRuleSet` is a TypeScript interface — it won't cause runtime errors. The issue is that `for...of` on `ruleSet.enabled_checks` fails, which means at runtime the value is `undefined`. This happens because the tests are importing from `@repo/policies` or a direct path and the module **isn't resolving correctly**, OR the `EligibilityRuleSet` type's `enabled_checks` field is being passed as something unexpected.
+
+Most likely: the tests pass `enabled_checks` as a plain string array like `["submittedInEnglish", "alignedWithCall"]` but the function receives the object correctly — the real issue is the **import path**. The test imports `evaluateEligibility` directly, and if it resolves to the source file with `.js` extensions that don't exist in the test environment (vitest with TypeScript), the import fails silently and the function is `undefined`, causing a different error. 
+
+Actually re-reading: `ruleSet.enabled_checks is not iterable` — this is a **runtime** TypeError. The `ruleSet` object is received but `enabled_checks` is `undefined`. This means the tests are passing `enabled_checks` under a **different field name** or the `EligibilityRuleSet` interface field name doesn't match what tests pass. Tests likely use `enabledChecks` (camelCase) not `enabled_checks` (snake_case).
+
+**Fix:** Rename `enabled_checks` to `enabledChecks` and `max_budget_k_eur` to `maxBudgetKEur` in `EligibilityRuleSet` to match what tests expect (camelCase for this internal type). Also fix `runEligibilityCheck` to use the new field names.
+
+---
+
+```typescript
+// packages/domain/src/schemas/index.ts
+
+import { z } from "zod";
+
+// ── Enumerations ──────────────────────────────────────────────────────────────
+
+export const ProposalStatusSchema = z.enum([
+  "draft",
+  "submitted",
+  "eligibility_failed",
+  "eligible",
+  "under_review",
+  "clarification_requested",
+  "revised",
+  "validation_pending",
+  "selected",
+  "rejected",
+]);
+
+export const EligibilityStatusSchema = z.enum([
+  "eligible",
+  "ineligible",
+  "pending",
+]);
+
+export const CallStatusSchema = z.enum([
+  "draft",
+  "open",
+  "closed",
+  "archived",
+]);
+
+export const MeetsEuropeanDimensionSchema = z.enum([
+  "true",
+  "false",
+  "not_applicable",
+]);
+
+export const RoleSchema = z.enum([
+  "applicant",
+  "admin",
+  "reviewer",
+  "validator",
+  "auditor",
+]);
+
+// ── EligibilityInputs ─────────────────────────────────────────────────────────
+
+export const EligibilityInputsSchema = z.object({
+  submitted_in_english: z.boolean(),
+  aligned_with_call: z.boolean(),
+  primary_objective_is_rd: z.boolean(),
+  meets_european_dimension: MeetsEuropeanDimensionSchema,
+  requested_budget_k_eur: z.number().positive(),
+  first_time_applicant_in_programme: z.boolean(),
+});
+
+// ── Call ──────────────────────────────────────────────────────────────────────
+
+export const CallSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  description: z.string(),
+  open_date: z.coerce.date(),
+  close_date: z.coerce.date(),
+  status: CallStatusSchema,
+  max_budget_k_eur: z.number().positive(),
+  reviewer_policy_version: z.string(),
+  enabled_eligibility_checks: z.array(z.string()),
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date(),
+});
+
+export const CreateCallSchema = CallSchema.omit({
+  id: true,
+  created_at: true,
+  updated_at: true,
+});
+
+// ── Submission ────────────────────────────────────────────────────────────────
+
+export const SubmissionSchema = z.object({
+  id: z.string().min(1),
+  call_id: z.string().min(1),
+  applicant_alias: z.string().min(1),
+  status: ProposalStatusSchema,
+  submitted_at: z.coerce.date().nullable(),
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date(),
+});
+
+// ── ProposalVersion ───────────────────────────────────────────────────────────
+
+export const ProposalVersionSchema = z.object({
+  id: z.string().min(1),
+  submission_id: z.string().min(1),
+  version_number: z.number().int().positive(),
+  is_effective: z.boolean(),
+  title: z.string().min(1),
+  abstract: z.string().min(1),
+  requested_budget_k_eur: z.number().positive(),
+  budget_usage: z.string().min(1),
+  tasks_breakdown: z.unknown(),
+  attachments_meta: z.array(z.unknown()),
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date(),
+});
+
+// ── ApplicantIdentity ─────────────────────────────────────────────────────────
+
+export const ApplicantIdentitySchema = z.object({
+  id: z.string().min(1),
+  submission_id: z.string().min(1),
+  legal_name: z.string().min(1),
+  email: z.string().email(),
+  country: z.string().min(1),
+  organisation: z.string().min(1),
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date(),
+});
+
+// ── BlindedPacket ─────────────────────────────────────────────────────────────
+
+export const BlindedPacketContentSchema = z.object({
+  submission_id: z.string().min(1),
+  version_number: z.number().int().positive(),
+  title: z.string(),
+  abstract: z.string(),
+  requested_budget_k_eur: z.number(),
+  budget_usage: z.string(),
+  tasks_breakdown: z.unknown(),
+  attachments_meta: z.array(z.unknown()),
+});
+
+export const BlindedPacketSchema = z.object({
+  id: z.string().min(1),
+  proposal_version_id: z.string().min(1),
+  content: BlindedPacketContentSchema,
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date(),
+});
+
+// ── EligibilityRecord ─────────────────────────────────────────────────────────
+
+export const EligibilityRecordSchema = z.object({
+  id: z.string().min(1),
+  submission_id: z.string().min(1),
+  status: EligibilityStatusSchema,
+  inputs: EligibilityInputsSchema,
+  active_rules: z.array(z.string()),
+  failure_reasons: z.array(z.string()),
+  evaluated_at: z.coerce.date(),
+  created_at: z.coerce.date(),
+  updated_at: z.coerce.date(),
+});
+
+// ── AuditEvent ────────────────────────────────────────────────────────────────
+
+export const AuditEventSchema = z.object({
+  id: z.string().min(1),
+  event_type: z.string(),
+  actor_id: z.string(),
+  target_type: z.string(),
+  target_id: z.string(),
+  payload: z.record(z.string(), z.unknown()),
+  timestamp: z.coerce.date(),
+});
+
+// ── Intake request ────────────────────────────────────────────────────────────
+
+export const IntakeRequestSchema = z.object({
+  call_id: z.string().min(1),
+  // Proposal content
+  title: z.string().min(1),
+  abstract: z.string().min(1),
+  requested_budget_k_eur: z.number().positive(),
+  budget_usage: z.string().min(1),
+  tasks_breakdown: z.unknown(),
+  attachments_meta: z.array(z.unknown()).optional().default([]),
+  // Applicant identity (kept separate in processing)
+  legal_name: z.string().min(1),
+  email: z.string().email(),
+  country: z.string().min(1),
+  organisation: z.string().min(1),
+});
+
+// ── Eligibility check request ─────────────────────────────────────────────────
+
+export const EligibilityCheckRequestSchema = z.object({
+  submission_id: z.string().min(1),
+  inputs: EligibilityInputsSchema,
+});
+```
+
+---
+
+```typescript
+// packages/domain/src/entities/index.ts
+
+import { z } from "zod";
+import {
+  CallSchema,
+  SubmissionSchema,
+  ProposalVersionSchema,
+  ApplicantIdentitySchema,
+  BlindedPacketSchema,
+  BlindedPacketContentSchema,
+  EligibilityRecordSchema,
+  AuditEventSchema,
+  EligibilityInputsSchema,
+  ProposalStatusSchema,
+  EligibilityStatusSchema,
+  CallStatusSchema,
+  MeetsEuropeanDimensionSchema,
+  RoleSchema,
+} from "../schemas/index.js";
+
+// ── Inferred entity types ─────────────────────────────────────────────────────
+
+export type Call = z.infer<typeof CallSchema>;
+export type Submission = z.infer<typeof SubmissionSchema>;
+export type ProposalVersion = z.infer<typeof ProposalVersionSchema>;
+export type ApplicantIdentity = z.infer<typeof ApplicantIdentitySchema>;
+export type BlindedPacket = z.infer<typeof BlindedPacketSchema>;
+export type BlindedPacketContent = z.infer<typeof BlindedPacketContentSchema>;
+export type EligibilityRecord = z.infer<typeof EligibilityRecordSchema>;
+export type AuditEvent = z.infer<typeof AuditEventSchema>;
+export type EligibilityInputs = z.infer<typeof EligibilityInputsSchema>;
+
+// ── Enumeration types ─────────────────────────────────────────────────────────
+
+export type ProposalStatus = z.infer<typeof ProposalStatusSchema>;
+export type EligibilityStatus = z.infer<typeof EligibilityStatusSchema>;
+export type CallStatus = z.infer<typeof CallStatusSchema>;
+export type MeetsEuropeanDimension = z.infer<typeof MeetsEuropeanDimensionSchema>;
+export type Role = z.infer<typeof RoleSchema>;
+
+// ── Principal ─────────────────────────────────────────────────────────────────
+
+export interface Principal {
+  id: string;
+  role: Role;
+  /** For applicants: their alias. */
+  applicant_alias?: string;
+  /** For reviewers: submission IDs they are assigned to. */
+  assigned_submission_ids?: string[];
+}
+
+// ── Access control ────────────────────────────────────────────────────────────
+
+export type ResourceType =
+  | "Submission"
+  | "ProposalVersion"
+  | "ApplicantIdentity"
+  | "BlindedPacket"
+  | "EligibilityRecord"
+  | "Call"
+  | "AuditEvent";
+
+export type Operation = "read" | "write" | "delete";
+
+export interface AccessContext {
+  submission_id?: string;
+  applicant_alias?: string;
+  proposal_status?: ProposalStatus;
+}
+
+export interface AccessResult {
+  /** Whether access is granted. */
+  allowed: boolean;
+  policy: string;
+  reason: string;
+}
+
+// ── Eligibility rule set ──────────────────────────────────────────────────────
+
+export type EligibilityCheckName =
+  | "submittedInEnglish"
+  | "alignedWithCall"
+  | "primaryObjectiveIsRd"
+  | "meetsEuropeanDimension"
+  | "requestedBudgetKEur"
+  | "firstTimeApplicantInProgramme";
+
+export interface EligibilityRuleSet {
+  version: string;
+  /** camelCase names matching EligibilityCheckName */
+  enabledChecks: EligibilityCheckName[];
+  maxBudgetKEur: number;
+}
+
+export interface EligibilityResult {
+  status: EligibilityStatus;
+  failure_reasons: string[];
+  active_rules: string[];
+  inputs: EligibilityInputs;
+  rule_set_version: string;
+}
+```
+
+---
+
+```typescript
+// packages/domain/src/index.ts
+
+export * from "./schemas/index.js";
+export * from "./entities/index.js";
+```
+
+---
+
+```typescript
+// packages/policies/src/access/checkAccess.ts
+
+import type {
+  Principal,
+  ResourceType,
+  Operation,
+  AccessContext,
+  AccessResult,
+  ProposalStatus,
+} from "@repo/domain";
+
+/**
+ * Evaluates access control for a given principal, resource, and operation.
+ *
+ * Returns { allowed: boolean, policy: string, reason: string }.
+ *
+ * Implements policies from specs/access-policies.md:
+ * - applicant-own-proposals
+ * - admin-all
+ * - reviewer-blinded-assigned
+ * - deny-identity-to-reviewer
+ */
+export function checkAccess(
+  principal: Principal,
+  resource: ResourceType,
+  operation: Operation,
+  context?: AccessContext
+): AccessResult {
+  // ── HARD DENY: reviewer may NEVER access ApplicantIdentity ────────────────
+  if (principal.role === "reviewer" && resource === "ApplicantIdentity") {
+    return {
+      allowed: false,
+      policy: "deny-identity-to-reviewer",
+      reason: "Reviewers are explicitly denied access to ApplicantIdentity.",
+    };
+  }
+
+  // ── Auditor: read-only audit logs ─────────────────────────────────────────
+  if (principal.role === "auditor") {
+    if (resource === "AuditEvent" && operation === "read") {
+      return {
+        allowed: true,
+        policy: "auditor-audit-log",
+        reason: "Auditors may read audit events.",
+      };
+    }
+    return {
+      allowed: false,
+      policy: "auditor-audit-log",
+      reason: "Auditors may only read AuditEvent records.",
+    };
+  }
+
+  // ── Admin: full access ────────────────────────────────────────────────────
+  if (principal.role === "admin") {
+    return {
+      allowed: true,
+      policy: "admin-all",
+      reason: "Admins have full access to all resources.",
+    };
+  }
+
+  // ── Applicant policies ────────────────────────────────────────────────────
+  if (principal.role === "applicant") {
+    // Applicants cannot access BlindedPacket
+    if (resource === "BlindedPacket") {
+      return {
+        allowed: false,
+        policy: "applicant-own-proposals",
+        reason: "Applicants cannot access BlindedPackets.",
+      };
+    }
+
+    // Applicants may not write EligibilityRecord
+    if (resource === "EligibilityRecord" && operation === "write") {
+      return {
+        allowed: false,
+        policy: "applicant-own-proposals",
+        reason: "Applicants cannot write EligibilityRecord.",
+      };
+    }
+
+    // Applicants may only access their own submissions
+    if (context?.applicant_alias !== undefined) {
+      if (context.applicant_alias !== principal.applicant_alias) {
+        return {
+          allowed: false,
+          policy: "applicant-own-proposals",
+          reason: "Applicants may only access their own submissions.",
+        };
+      }
+    }
+
+    // State-based write restrictions for applicants
+    if (operation === "write" && context?.proposal_status !== undefined) {
+      const writableStates: ProposalStatus[] = ["draft", "clarification_requested"];
+      if (!writableStates.includes(context.proposal_status)) {
+        return {
+          allowed: false,
+          policy: "applicant-own-proposals",
+          reason: `Applicants cannot write proposals in status: ${context.proposal_status}.`,
+        };
+      }
+    }
+
+    return {
+      allowed: true,
+      policy: "applicant-own-proposals",
+      reason: "Applicant accessing own resource.",
+    };
+  }
+
+  // ── Reviewer policies ─────────────────────────────────────────────────────
+  if (principal.role === "reviewer") {
+    // Reviewer can only read
+    if (operation !== "read") {
+      return {
+        allowed: false,
+        policy: "reviewer-blinded-assigned",
+        reason: "Reviewers may only perform read operations.",
+      };
+    }
+
+    // Reviewer can only access BlindedPackets of assigned proposals
+    if (resource === "BlindedPacket") {
+      if (
+        context?.submission_id !== undefined &&
+        principal.assigned_submission_ids !== undefined
+      ) {
+        if (!principal.assigned_submission_ids.includes(context.submission_id)) {
+          return {
+            allowed: false,
+            policy: "reviewer-blinded-assigned",
+            reason: "Reviewer is not assigned to this submission.",
+          };
+        }
+      }
+
+      // Verify the proposal is in a reviewer-accessible state
+      if (context?.proposal_status !== undefined) {
+        const reviewerAccessibleStates: ProposalStatus[] = [
+          "under_review",
+          "clarification_requested",
+          "revised",
+          "validation_pending",
+          "selected",
+        ];
+        if (!reviewerAccessibleStates.includes(context.proposal_status)) {
+          return {
+            allowed: false,
+            policy: "reviewer-blinded-assigned",
+            reason: `Reviewers cannot access proposals in status: ${context.proposal_status}.`,
+          };
+        }
+      }
+
+      return {
+        allowed: true,
+        policy: "reviewer-blinded-assigned",
+        reason: "Reviewer accessing assigned blinded packet.",
+      };
+    }
+
+    // Reviewers must use BlindedPacket — deny direct ProposalVersion access
+    if (resource === "ProposalVersion") {
+      return {
+        allowed: false,
+        policy: "reviewer-blinded-assigned",
+        reason: "Reviewers must access proposals via BlindedPacket only.",
+      };
+    }
+
+    return {
+      allowed: false,
+      policy: "reviewer-blinded-assigned",
+      reason: `Reviewers cannot access resource: ${resource}.`,
+    };
+  }
+
+  // ── Validator policies (P5+) ──────────────────────────────────────────────
+  if (principal.role === "validator") {
+    if (resource === "BlindedPacket" && operation === "read") {
+      if (
+        context?.proposal_status === "validation_pending" ||
+        context?.proposal_status === "selected"
+      ) {
+        return {
+          allowed: true,
+          policy: "validator-shortlisted",
+          reason: "Validator accessing shortlisted blinded packet.",
+        };
+      }
+    }
+    return {
+      allowed: false,
+      policy: "validator-shortlisted",
+      reason: "Validators may only read BlindedPackets of shortlisted proposals.",
+    };
+  }
+
+  // ── Default deny ──────────────────────────────────────────────────────────
+  return {
+    allowed: false,
+    policy: "default-deny",
+    reason: "No policy granted access.",
+  };
+}
+```
+
+---
+
+```typescript
+// packages/policies/src/eligibility/evaluateEligibility.ts
+
+import type {
+  EligibilityInputs,
+  EligibilityResult,
+  EligibilityCheckName,
+  EligibilityRuleSet,
+} from "@repo/domain";
+
+/**
+ * Pure function: evaluates EligibilityInputs against an active rule set.
+ * Records exact input values and the rule set version at evaluation time.
+ *
+ * Returns an EligibilityResult with status, failure_reasons, and active_rules.
+ */
+export function evaluateEligibility(
+  inputs: EligibilityInputs,
+  ruleSet: EligibilityRuleSet
+): EligibilityResult {
+  const failureReasons: string[] = [];
+  const activeRules: string[] = [...ruleSet.enabledChecks];
+
+  for (const check of ruleSet.enabledChecks) {
+    const failure = runCheck(check, inputs, ruleSet);
+    if (failure !== null) {
+      failureReasons.push(failure);
+    }
+  }
+
+  const status = failureReasons.length === 0 ? "eligible" : "ineligible";
+
+  return {
+    status,
+    failure_reasons: failureReasons,
+    active_rules: activeRules,
+    inputs,
+    rule_set_version: ruleSet.version,
+  };
+}
+
+/**
+ * Runs a single named eligibility check.
+ * Returns null if the check passes, or a failure reason string if it fails.
+ */
+function runCheck(
+  check: EligibilityCheckName,
+  inputs: EligibilityInputs,
+  ruleSet: EligibilityRuleSet
+): string | null {
+  switch (check) {
+    case "submittedInEnglish":
+      return inputs.submitted_in_english
+        ? null
+        : "Proposal was not submitted in English.";
+
+    case "alignedWithCall":
+      return inputs.aligned_with_call
+        ? null
+        : "Proposal is not aligned with the call objectives.";
+
+    case "primaryObjectiveIsRd":
+      return inputs.primary_objective_is_rd
+        ? null
+        : "Primary objective is not research and development.";
+
+    case "meetsEuropeanDimension":
+      return inputs.meets_european_dimension !== "false"
+        ? null
+        : "Proposal does not meet the European dimension requirement.";
+
+    case "requestedBudgetKEur":
+      return inputs.requested_budget_k_eur <= ruleSet.maxBudgetKEur
+        ? null
+        : `Requested budget (${inputs.requested_budget_k_eur}k EUR) exceeds maximum allowed (${ruleSet.maxBudgetKEur}k EUR).`;
+
+    case "firstTimeApplicantInProgramme":
+      // GAP-001: spec does not define a pass/fail rule for this check.
+      // Passes unconditionally when enabled.
+      return null;
+
+    default: {
+      const _exhaustive: never = check;
+      return `Unknown eligibility check: ${String(_exhaustive)}`;
+    }
+  }
+}
+```
+
+---
+
+```typescript
+// packages/policies/src/workflow/runEligibilityCheck.ts
+
+import { PrismaClient } from "@prisma/client";
+import type { EligibilityInputs, EligibilityRuleSet, EligibilityCheckName } from "@repo/domain";
+import { evaluateEligibility } from "../eligibility/evaluateEligibility.js";
+
+export interface RunEligibilityCheckInput {
+  submission_id: string;
+  inputs: EligibilityInputs;
+}
+
+export interface RunEligibilityCheckResult {
+  eligibility_record_id: string;
+  status: "eligible" | "ineligible" | "pending";
+  failure_reasons: string[];
+  active_rules: string[];
+}
+
+/**
+ * Runs the eligibility gate for a submission:
+ * 1. Loads the associated call to get the active rule set
+ * 2. Evaluates inputs via the pure evaluateEligibility function
+ * 3. Persists an EligibilityRecord with exact input values and rule set
+ * 4. Transitions submission status (eligible | eligibility_failed)
+ * 5. Writes an AuditEvent
+ *
+ * All DB writes are in a single Prisma transaction.
+ */
+export async function runEligibilityCheck(
+  prisma: PrismaClient,
+  input: RunEligibilityCheckInput,
+  actorId: string
+): Promise<RunEligibilityCheckResult> {
+  return prisma.$transaction(async (tx) => {
+    // 1. Load submission and its call
+    const submission = await tx.submission.findUnique({
+      where: { id: input.submission_id },
+      include: { call: true },
+    });
+
+    if (!submission) {
+      throw new Error(`Submission not found: ${input.submission_id}`);
+    }
+
+    if (submission.status !== "submitted") {
+      throw new Error(
+        `Eligibility check can only run on submitted proposals. Current status: ${submission.status}`
+      );
+    }
+
+    const call = submission.call;
+
+    // 2. Build active rule set from call configuration using camelCase fields
+    const ruleSet: EligibilityRuleSet = {
+      version: `call:${call.id}:v1`,
+      enabledChecks: call.enabled_eligibility_checks as EligibilityCheckName[],
+      maxBudgetKEur: call.max_budget_k_eur,
+    };
+
+    // 3. Evaluate eligibility (pure function — records exact inputs)
+    const result = evaluateEligibility(input.inputs, ruleSet);
+
+    // 4. Persist EligibilityRecord
+    const eligibilityRecord = await tx.eligibilityRecord.create({
+      data: {
+        submission_id: input.submission_id,
+        status: result.status,
+        inputs: result.inputs as object,
+        active_rules: result.active_rules,
+        failure_reasons: result.failure_reasons,
+        evaluated_at: new Date(),
+      },
+    });
+
+    // 5. Transition submission status
+    const nextStatus =
+      result.status === "eligible" ? "eligible" : "eligibility_failed";
+
+    await tx.submission.update({
+      where: { id: input.submission_id },
+      data: { status: nextStatus },
+    });
+
+    // 6. Write audit event
+    await tx.auditEvent.create({
+      data: {
+        event_type: "eligibility.evaluated",
+        actor_id: actorId,
+        target_type: "Submission",
+        target_id: input.submission_id,
+        payload: {
+          eligibility_record_id: eligibilityRecord.id,
+          previous_status: "submitted",
+          next_status: nextStatus,
+          eligibility_status: result.status,
+          failure_reasons: result.failure_reasons,
+          active_rules: result.active_rules,
+          rule_set_version: result.rule_set_version,
+        },
+      },
+    });
+
+    return {
+      eligibility_record_id: eligibilityRecord.id,
+      status: result.status,
+      failure_reasons: result.failure_reasons,
+      active_rules: result.active_rules,
+    };
+  });
+}
+```
+
+---
+
+```typescript
+// packages/policies/src/index.ts
+
+export * from "./access/checkAccess.js";
+export * from "./eligibility/evaluateEligibility.js";
+export * from "./intake/blindedPacketMapper.js";
+export * from "./workflow/submitProposal.js";
+export * from "./workflow/runEligibilityCheck.js";
+```

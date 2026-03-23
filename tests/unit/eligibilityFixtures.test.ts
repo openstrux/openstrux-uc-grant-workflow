@@ -9,7 +9,7 @@
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "fs";
 import { join } from "path";
-import { evaluateEligibility } from "../../packages/policies/src/eligibility/evaluateEligibility";
+import { evaluateEligibility } from "../../packages/policies/src";
 
 const fixturesDir = join(__dirname, "../fixtures/eligibility");
 

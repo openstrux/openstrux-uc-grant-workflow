@@ -1,12 +1,16 @@
 /**
  * Integration tests for the eligibility service.
  *
- * Tests the full stack: evaluateEligibility service -> DB record -> response.
- * Requires a running PostgreSQL instance.
+ * Tests the full stack: runEligibilityCheck service → DB → verify persisted state.
+ * Requires a running PostgreSQL instance (DATABASE_URL).
+ *
+ * Imports from service-layer contracts, not internal modules.
  */
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { PrismaClient } from "@prisma/client";
+import { submitProposal } from "../../app/web/src/server/services/submissionService";
+import { runEligibilityCheck } from "../../app/web/src/server/services/eligibilityService";
 
 const prisma = new PrismaClient({
   datasources: { db: { url: process.env.DATABASE_URL } },
@@ -29,7 +33,6 @@ afterAll(async () => {
 });
 
 async function createTestSubmission(alias: string): Promise<string> {
-  const { submitProposal } = await import("../../packages/policies/src/workflow/submitProposal");
   const result = await submitProposal({
     callId: "call-test",
     applicantAlias: alias,
@@ -44,7 +47,6 @@ async function createTestSubmission(alias: string): Promise<string> {
 
 describe("Eligibility service (integration)", () => {
   it("records eligibility check result in the database", async () => {
-    const { runEligibilityCheck } = await import("../../packages/policies/src/workflow/runEligibilityCheck");
     const submissionId = await createTestSubmission("test-elig-001");
 
     const result = await runEligibilityCheck({
@@ -64,12 +66,10 @@ describe("Eligibility service (integration)", () => {
     const record = await prisma.eligibilityRecord.findFirst({ where: { submissionId } });
     expect(record).toBeTruthy();
     expect(record?.status).toBe("eligible");
-    // Exact inputs must be persisted
     expect(record?.inputs).toBeTruthy();
   });
 
   it("updates submission status to eligible on pass", async () => {
-    const { runEligibilityCheck } = await import("../../packages/policies/src/workflow/runEligibilityCheck");
     const submissionId = await createTestSubmission("test-elig-002");
 
     await runEligibilityCheck({
@@ -89,7 +89,6 @@ describe("Eligibility service (integration)", () => {
   });
 
   it("updates submission status to eligibility_failed on fail", async () => {
-    const { runEligibilityCheck } = await import("../../packages/policies/src/workflow/runEligibilityCheck");
     const submissionId = await createTestSubmission("test-elig-003");
 
     await runEligibilityCheck({
@@ -109,7 +108,6 @@ describe("Eligibility service (integration)", () => {
   });
 
   it("generates audit event for eligibility check", async () => {
-    const { runEligibilityCheck } = await import("../../packages/policies/src/workflow/runEligibilityCheck");
     const submissionId = await createTestSubmission("test-elig-004");
 
     await runEligibilityCheck({

@@ -1,14 +1,16 @@
 /**
  * POST /api/eligibility
  *
- * Runs the eligibility check for a submission. This route is a stub — the
- * backend generation phase must replace this with a real implementation.
+ * Runs the eligibility check for a submission.
  *
- * Contract:
- *   Body: { submissionId, inputs: EligibilityInputs }
- *   Response 200: { status: "eligible" | "ineligible", failureReasons: string[] }
+ * Contract (defined in @grant-workflow/domain):
+ *   Body:         EligibilityRequestSchema
+ *   Response 200: EligibilityResponseSchema — { status, failureReasons }
  *   Response 400: { error: string }
- *   Response 501: not yet implemented
+ *   Response 401: unauthenticated
+ *   Response 403: wrong role
+ *
+ * Auth: verifySession(req) — must have role "admin".
  *
  * @generated-stub — replace with real implementation via backend generation
  */

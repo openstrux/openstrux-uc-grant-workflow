@@ -1,0 +1,18 @@
+{
+  "timestamp": "2026-03-22T23:13:38Z",
+  "path": "direct",
+  "promptVersion": "13691e4",
+  "llm": "claude-sonnet-4-6",
+  "generatedFileCount": 22,
+  "totalLines": 2124,
+  "inputTokens": 202572,
+  "outputTokens": 53821,
+  "timeSeconds": 708.4780000000001,
+  "retries": 5,
+  "testSuites": {
+    "unit": { "total": 32, "passed": 5, "failed": 27 }
+  },
+  "testResults": "5/32 pass",
+  "note": "",
+  "gaps": []
+}

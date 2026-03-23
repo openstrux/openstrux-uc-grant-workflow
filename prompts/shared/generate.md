@@ -12,7 +12,7 @@ Read these files — they define what to build:
 
 Execute all tasks in `openspec/changes/backend-generation/tasks.md`.
 
-The frontend and tests already exist. You are generating the backend they call: Prisma schema, domain types, service layer, API routes, access middleware, eligibility logic.
+The frontend and tests already exist. You are generating the backend they call. The baseline includes contract stubs (`@generated-stub`) with typed signatures — implement them. See `tasks.md` for the contract surfaces table.
 
 ## Verification
 

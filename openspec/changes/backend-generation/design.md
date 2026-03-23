@@ -1,29 +1,39 @@
 ## Architecture
 
-The backend is a layered TypeScript application:
+The backend is a layered TypeScript application with a contract-first design. Typed stubs define the contract surfaces; tests import only from these surfaces. Internal file structure within packages is free.
+
+### Contract surfaces
 
 ```
-app/web/src/app/api/          Next.js route handlers (HTTP boundary)
-  └── intake/route.ts         POST /api/intake
-  └── eligibility/route.ts    POST /api/eligibility
+packages/domain/src/schemas/index.ts    Zod schemas (entity + API request/response)
+                                        Single source of truth — all types via z.infer<>
 
-app/web/src/server/
-  auth/                       JWT extraction, role guards
-  services/                   Service interface stubs (pre-built, not replaced)
+packages/policies/src/index.ts          Barrel exporting pure business-logic functions:
+                                        evaluateEligibility, createBlindedPacket,
+                                        isValidTransition, getNextStatus
 
+app/web/src/lib/dal.ts                  verifySession(req) → Principal | null
+
+app/web/src/server/services/
+  submissionService.ts                  submitProposal, listSubmissions, getSubmission
+  eligibilityService.ts                 runEligibilityCheck
+
+app/web/src/app/api/
+  intake/route.ts                       POST — validates with IntakeRequestSchema
+  eligibility/route.ts                  POST — validates with EligibilityRequestSchema
+
+prisma/schema.prisma                    Database models matching domain model
+```
+
+### Internal structure (free)
+
+The `packages/policies/src/` barrel may delegate to internal modules:
+```
 packages/policies/src/
-  eligibility/                Pure rule evaluation (no DB)
-  access/                     Principal + resource + operation policy
-  workflow/                   DB-touching service functions
-    submitProposal.ts         Create submission + version + blinded packet + audit
-    runEligibilityCheck.ts    Evaluate eligibility + update submission status + audit
-
-packages/domain/src/
-  schemas/                    Zod schemas matching specs/domain-model.md
-  entities/                   TypeScript interfaces
-
-prisma/
-  schema.prisma               Database models matching domain model
+  index.ts              ← barrel (contract surface, tested)
+  eligibility/          ← internal (free to organise)
+  workflow/             ← internal (free to organise)
+  intake/               ← internal (free to organise)
 ```
 
 ## Key design decisions
@@ -32,11 +42,11 @@ prisma/
 
 **BlindedPacket is created eagerly**: On submission, a blinded packet is created immediately (not lazily). The packet JSON strips all identity fields at the mapper level.
 
-**Eligibility is pure + recorded**: `evaluateEligibility()` is a pure function (unit-testable). `runEligibilityCheck()` wraps it, persists the result, and transitions submission status.
+**Eligibility is pure + recorded**: `evaluateEligibility()` is a pure function (unit-testable, exported from policies barrel). `runEligibilityCheck()` in the service layer wraps it, persists the result, and transitions submission status.
 
 **Audit events**: Both `submitProposal` and `runEligibilityCheck` write audit events inside Prisma transactions.
 
-**Access middleware**: All admin routes require `admin` role in JWT. Reviewer routes (P3+) require `reviewer` role and submission assignment check.
+**Auth (DAL)**: Route handlers call `verifySession(req)` from `app/web/src/lib/dal.ts`. For P0-P2, uses dev-mode `X-Role`/`X-User-Id` headers. Returns 401 (no session) or 403 (wrong role) before any business logic.
 
 ## Output location
 

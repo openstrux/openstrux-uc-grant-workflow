@@ -22,12 +22,20 @@ You are implementing the backend of a privacy-first grant review system. The sys
 The repository ships with:
 - `app/web/` — Next.js frontend (pages, forms, navigation) calling predefined service interfaces
 - `tests/unit/` and `tests/integration/` — vitest tests as acceptance criteria
-- `packages/domain/` and `packages/policies/` — scaffolded but awaiting implementation
+- Contract stubs with typed signatures that you must implement:
+  - `packages/domain/src/schemas/index.ts` — Zod schemas (entity + API request/response)
+  - `packages/policies/src/index.ts` — barrel exporting pure functions (`evaluateEligibility`, `createBlindedPacket`, `isValidTransition`, `getNextStatus`)
+  - `app/web/src/server/services/submissionService.ts` — `submitProposal`, `listSubmissions`, `getSubmission`
+  - `app/web/src/server/services/eligibilityService.ts` — `runEligibilityCheck`
+  - `app/web/src/lib/dal.ts` — `verifySession(req)` → `Principal | null`
+  - `app/web/src/app/api/intake/route.ts` and `eligibility/route.ts` — route stubs
 - `prisma/` — scaffolded directory (schema must be implemented)
+
+Tests import only from these contract surfaces. Internal file structure within packages is free.
 
 ## What you are building
 
-The backend: Prisma schema, service layer, API route handlers, access middleware, and eligibility logic. The frontend and tests are already present.
+The backend: Prisma schema, domain schemas, pure policy functions, service layer, DAL, and API route handlers. The frontend and tests are already present. Replace the `@generated-stub` markers with real implementations.
 
 ## Output format
 

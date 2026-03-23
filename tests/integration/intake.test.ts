@@ -1,14 +1,15 @@
 /**
  * Integration tests for the intake service.
  *
- * These tests require a running PostgreSQL instance.
- * Set DATABASE_URL in .env.test or environment before running.
+ * Tests the full stack: submitProposal service → DB → verify persisted state.
+ * Requires a running PostgreSQL instance (DATABASE_URL).
  *
- * Tests the full stack: POST /api/intake -> service -> DB -> response.
+ * Imports from the service-layer contract, not internal modules.
  */
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { PrismaClient } from "@prisma/client";
+import { submitProposal } from "../../app/web/src/server/services/submissionService";
 
 const prisma = new PrismaClient({
   datasources: { db: { url: process.env.DATABASE_URL } },
@@ -16,7 +17,6 @@ const prisma = new PrismaClient({
 
 beforeAll(async () => {
   await prisma.$connect();
-  // Clean up any test data from previous runs
   await prisma.submission.deleteMany({ where: { applicantAlias: { startsWith: "test-" } } });
 });
 
@@ -27,10 +27,6 @@ afterAll(async () => {
 
 describe("Intake service (integration)", () => {
   it("creates a submission with a proposal version", async () => {
-    // Import the service function from the generated backend
-    // This will fail at compile time if the backend hasn't been generated yet.
-    const { submitProposal } = await import("../../packages/policies/src/workflow/submitProposal");
-
     const result = await submitProposal({
       callId: "call-test",
       applicantAlias: "test-researcher-001",
@@ -44,7 +40,6 @@ describe("Intake service (integration)", () => {
     expect(result.submissionId).toBeTruthy();
     expect(result.status).toBe("submitted");
 
-    // Verify the submission was persisted
     const stored = await prisma.submission.findUnique({ where: { id: result.submissionId } });
     expect(stored).toBeTruthy();
     expect(stored?.applicantAlias).toBe("test-researcher-001");
@@ -52,8 +47,6 @@ describe("Intake service (integration)", () => {
   });
 
   it("creates a blinded packet for the effective proposal version", async () => {
-    const { submitProposal } = await import("../../packages/policies/src/workflow/submitProposal");
-
     const result = await submitProposal({
       callId: "call-test",
       applicantAlias: "test-researcher-002",
@@ -64,13 +57,11 @@ describe("Intake service (integration)", () => {
       tasksBreakdown: "T1: Implementation — 2 months.",
     });
 
-    // Blinded packet must be created automatically
     const packet = await prisma.blindedPacket.findFirst({
       where: { proposalVersion: { submissionId: result.submissionId } },
     });
 
     expect(packet).toBeTruthy();
-    // Identity fields must not be in the packet content
     const content = packet!.content as Record<string, unknown>;
     expect(content).not.toHaveProperty("applicantIdentity");
     expect(content).not.toHaveProperty("legalName");
@@ -78,8 +69,6 @@ describe("Intake service (integration)", () => {
   });
 
   it("generates an audit event on submission creation", async () => {
-    const { submitProposal } = await import("../../packages/policies/src/workflow/submitProposal");
-
     const result = await submitProposal({
       callId: "call-test",
       applicantAlias: "test-researcher-003",

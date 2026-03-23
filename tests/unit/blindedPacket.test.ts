@@ -1,12 +1,14 @@
 /**
- * Golden tests for blinded packet generation.
+ * Contract tests for blinded packet creation.
  *
  * Verifies that the mapper strips identity fields and preserves
  * evaluable content, per FR-P1-007, FR-P1-008, FR-P1-009.
+ *
+ * Imports from @grant-workflow/policies barrel.
  */
 
 import { describe, it, expect } from "vitest";
-import { createBlindedPacket } from "../../packages/policies/src/workflow/createBlindedPacket";
+import { createBlindedPacket } from "../../packages/policies/src";
 import expectedBlinded from "../fixtures/blinded-packets/expected-blinded.json";
 
 describe("createBlindedPacket (golden test)", () => {

@@ -1,13 +1,12 @@
 /**
- * Unit tests for eligibility policy module.
+ * Contract tests for eligibility evaluation.
  *
- * Tests the pure rule-evaluation logic in packages/policies/src/eligibility/.
- * These tests do not require a database — they test the function
- * `evaluateEligibility(inputs, activeRules)` directly.
+ * Tests the pure rule-evaluation function exported from
+ * @grant-workflow/policies. No database required.
  */
 
 import { describe, it, expect } from "vitest";
-import { evaluateEligibility } from "../../packages/policies/src/eligibility/evaluateEligibility";
+import { evaluateEligibility } from "../../packages/policies/src";
 
 const VALID_INPUTS = {
   submittedInEnglish: true,
@@ -88,7 +87,6 @@ describe("evaluateEligibility", () => {
   });
 
   it("respects active rule set — inactive rules are not evaluated", () => {
-    // submittedInEnglish is false but its rule is not active
     const inputs = { ...VALID_INPUTS, submittedInEnglish: false };
     const activeRules = ["alignedWithCall", "primaryObjectiveIsRd"];
     const result = evaluateEligibility(inputs, activeRules);

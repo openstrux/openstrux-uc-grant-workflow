@@ -17,8 +17,11 @@ Write all generated files to `output/direct/`, mirroring the repository tree:
 ```
 output/direct/
   prisma/schema.prisma
-  packages/domain/src/...
-  packages/policies/src/...
-  app/web/src/app/api/...
-  app/web/src/server/auth/...
+  packages/domain/src/schemas/index.ts
+  packages/policies/src/index.ts        (barrel — may also add internal modules)
+  app/web/src/lib/dal.ts
+  app/web/src/server/services/submissionService.ts
+  app/web/src/server/services/eligibilityService.ts
+  app/web/src/app/api/intake/route.ts
+  app/web/src/app/api/eligibility/route.ts
 ```
