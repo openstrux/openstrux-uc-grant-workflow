@@ -11,16 +11,51 @@
  *   Response 403: wrong role
  *
  * Auth: verifySession(req) — must have role "admin".
- *
- * @generated-stub — replace with real implementation via backend generation
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { ZodError } from "zod";
+import { EligibilityRequestSchema } from "../../../../../../packages/domain/src/schemas";
+import { verifySession } from "../../../lib/dal";
+import { runEligibilityCheck } from "../../../server/services/eligibilityService";
 
 export async function POST(req: NextRequest) {
-  void req;
-  return NextResponse.json(
-    { error: "Backend not yet generated. Apply the backend-generation change first." },
-    { status: 501 },
-  );
+  // Auth: verify session
+  const principal = await verifySession(req);
+  if (!principal) {
+    return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+  }
+  if (principal.role !== "admin") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // Parse and validate request body
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  let input;
+  try {
+    input = EligibilityRequestSchema.parse(body);
+  } catch (err) {
+    if (err instanceof ZodError) {
+      return NextResponse.json(
+        { error: err.errors.map((e) => e.message).join("; ") },
+        { status: 400 },
+      );
+    }
+    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+  }
+
+  // Run eligibility check
+  try {
+    const result = await runEligibilityCheck(input);
+    return NextResponse.json(result, { status: 200 });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }
