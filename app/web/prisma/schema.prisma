@@ -1,0 +1,138 @@
+// Prisma schema — grant workflow backend
+// Entities follow specs/domain-model.md; table names use snake_case.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Call — funding call configuration
+// ---------------------------------------------------------------------------
+
+model Call {
+  id                       String   @id @default(cuid())
+  title                    String
+  description              String   @default("")
+  openDate                 DateTime?
+  closeDate                DateTime?
+  status                   String   @default("open")
+  enabledEligibilityChecks String[] @default([])
+  maxBudgetKEur            Float    @default(500)
+  reviewerPolicyVersion    String   @default("1.0")
+  createdAt                DateTime @default(now())
+
+  @@map("call")
+}
+
+// ---------------------------------------------------------------------------
+// Submission — proposal dossier linking applicant to call
+// ---------------------------------------------------------------------------
+
+model Submission {
+  id             String   @id @default(cuid())
+  callId         String
+  applicantAlias String
+  status         String   @default("submitted")
+  submittedAt    DateTime @default(now())
+
+  proposalVersions  ProposalVersion[]
+  applicantIdentity ApplicantIdentity?
+  eligibilityRecord EligibilityRecord?
+
+  @@map("submission")
+}
+
+// ---------------------------------------------------------------------------
+// ProposalVersion — versioned snapshot of proposal content
+// ---------------------------------------------------------------------------
+
+model ProposalVersion {
+  id                  String   @id @default(cuid())
+  submissionId        String
+  versionNumber       Int      @default(1)
+  isEffective         Boolean  @default(true)
+  title               String
+  abstract            String
+  requestedBudgetKEur Float
+  budgetUsage         String
+  tasksBreakdown      String
+  attachmentsMeta     Json?
+  createdAt           DateTime @default(now())
+
+  submission    Submission    @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  blindedPacket BlindedPacket?
+
+  @@map("proposal_version")
+}
+
+// ---------------------------------------------------------------------------
+// ApplicantIdentity — identity and contact data (separate data path)
+// ---------------------------------------------------------------------------
+
+model ApplicantIdentity {
+  id           String   @id @default(cuid())
+  submissionId String   @unique
+  legalName    String?
+  email        String?
+  country      String?
+  organisation String?
+  createdAt    DateTime @default(now())
+
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@map("applicant_identity")
+}
+
+// ---------------------------------------------------------------------------
+// BlindedPacket — reviewer-facing view, identity stripped
+// ---------------------------------------------------------------------------
+
+model BlindedPacket {
+  id                String   @id @default(cuid())
+  proposalVersionId String   @unique
+  content           Json
+  createdAt         DateTime @default(now())
+
+  proposalVersion ProposalVersion @relation(fields: [proposalVersionId], references: [id], onDelete: Cascade)
+
+  @@map("blinded_packet")
+}
+
+// ---------------------------------------------------------------------------
+// EligibilityRecord — result of eligibility gate evaluation
+// ---------------------------------------------------------------------------
+
+model EligibilityRecord {
+  id             String   @id @default(cuid())
+  submissionId   String   @unique
+  status         String   // "eligible" | "ineligible" | "pending"
+  inputs         Json
+  activeRules    String[]
+  failureReasons String[]
+  evaluatedAt    DateTime @default(now())
+
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@map("eligibility_record")
+}
+
+// ---------------------------------------------------------------------------
+// AuditEvent — immutable log entry for workflow, access, and policy decisions
+// ---------------------------------------------------------------------------
+
+model AuditEvent {
+  id         String   @id @default(cuid())
+  eventType  String
+  actorId    String
+  targetType String
+  targetId   String
+  payload    Json     @default("{}")
+  timestamp  DateTime @default(now())
+
+  @@map("audit_event")
+}

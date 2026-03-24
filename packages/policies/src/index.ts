@@ -2,13 +2,9 @@
  * @grant-workflow/policies — public contract.
  *
  * Exports pure business-logic functions that route handlers, services,
- * and tests depend on. Internal file structure is free — the generated
- * backend may organise code however it likes as long as these exports
- * resolve with the correct signatures.
+ * and tests depend on. No database access — all functions are pure.
  *
  * All input/output types derive from @grant-workflow/domain schemas.
- *
- * @generated-stub — replace with real implementation via backend generation
  */
 
 import type {
@@ -35,10 +31,50 @@ export interface EligibilityResult {
  * Budget threshold defaults to 500 k EUR.
  */
 export function evaluateEligibility(
-  _inputs: EligibilityInputs,
-  _activeRules: string[],
+  inputs: EligibilityInputs,
+  activeRules: string[],
 ): EligibilityResult {
-  throw new Error("Not implemented — replace via backend generation");
+  const failureReasons: string[] = [];
+
+  for (const rule of activeRules) {
+    switch (rule) {
+      case "submittedInEnglish":
+        if (!inputs.submittedInEnglish) {
+          failureReasons.push("submittedInEnglish");
+        }
+        break;
+      case "alignedWithCall":
+        if (!inputs.alignedWithCall) {
+          failureReasons.push("alignedWithCall");
+        }
+        break;
+      case "primaryObjectiveIsRd":
+        if (!inputs.primaryObjectiveIsRd) {
+          failureReasons.push("primaryObjectiveIsRd");
+        }
+        break;
+      case "meetsEuropeanDimension":
+        // "false" fails; "true" and "not_applicable" pass
+        if (inputs.meetsEuropeanDimension === "false") {
+          failureReasons.push("meetsEuropeanDimension");
+        }
+        break;
+      case "requestedBudgetKEur":
+        // Max budget: 500 k EUR
+        if (inputs.requestedBudgetKEur > 500) {
+          failureReasons.push("requestedBudgetKEur");
+        }
+        break;
+      // Unknown rules are silently ignored
+    }
+  }
+
+  return {
+    status: failureReasons.length === 0 ? "eligible" : "ineligible",
+    failureReasons,
+    inputs,
+    activeRules,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -60,16 +96,28 @@ export interface ApplicantIdentityData {
 }
 
 /**
- * Create a blinded (identity-stripped) packet from a proposal version and
- * applicant identity. The returned `content` must contain evaluable fields
- * (title, abstract, budget, etc.) and must NOT contain identity fields
- * (legalName, email, country, organisation, applicantAlias).
+ * Create a blinded (identity-stripped) packet from a proposal version.
+ * The returned `content` contains only evaluable fields and MUST NOT contain
+ * any identity fields (legalName, email, country, organisation, applicantAlias).
  */
 export function createBlindedPacket(
-  _proposalVersion: ProposalVersion,
+  proposalVersion: ProposalVersion,
   _applicantIdentity: ApplicantIdentityData,
 ): BlindedPacketData {
-  throw new Error("Not implemented — replace via backend generation");
+  // Extract only the evaluable content fields — identity is never included
+  const { title, abstract, requestedBudgetKEur, budgetUsage, tasksBreakdown } =
+    proposalVersion;
+
+  return {
+    proposalVersionId: proposalVersion.id,
+    content: {
+      title,
+      abstract,
+      requestedBudgetKEur,
+      budgetUsage,
+      tasksBreakdown,
+    },
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -77,10 +125,27 @@ export function createBlindedPacket(
 // ---------------------------------------------------------------------------
 
 /**
+ * Valid state transitions per specs/workflow-states.md.
+ * Keys are "from" states; values are allowed "to" states.
+ */
+const VALID_TRANSITIONS: Record<string, string[]> = {
+  draft: ["submitted"],
+  submitted: ["eligible", "eligibility_failed"],
+  eligibility_failed: [],
+  eligible: ["under_review"],
+  under_review: ["clarification_requested", "validation_pending", "rejected"],
+  clarification_requested: ["revised"],
+  revised: ["under_review"],
+  validation_pending: ["selected", "rejected"],
+  selected: [],
+  rejected: [],
+};
+
+/**
  * Check whether a status transition is valid per specs/workflow-states.md.
  */
-export function isValidTransition(_from: string, _to: string): boolean {
-  throw new Error("Not implemented — replace via backend generation");
+export function isValidTransition(from: string, to: string): boolean {
+  return VALID_TRANSITIONS[from]?.includes(to) ?? false;
 }
 
 /**
@@ -88,8 +153,31 @@ export function isValidTransition(_from: string, _to: string): boolean {
  *
  * Events: "eligibility_pass" → "eligible", "eligibility_fail" → "eligibility_failed".
  */
-export function getNextStatus(_currentStatus: string, _event: string): string {
-  throw new Error("Not implemented — replace via backend generation");
+export function getNextStatus(currentStatus: string, event: string): string {
+  const eventMap: Record<string, string> = {
+    submit: "submitted",
+    eligibility_pass: "eligible",
+    eligibility_fail: "eligibility_failed",
+    assign_reviewer: "under_review",
+    request_clarification: "clarification_requested",
+    applicant_responds: "revised",
+    shortlist: "validation_pending",
+    validate_selected: "selected",
+    reject: "rejected",
+  };
+
+  const next = eventMap[event];
+  if (next === undefined) {
+    throw new Error(`Unknown event: ${event}`);
+  }
+
+  if (!isValidTransition(currentStatus, next)) {
+    throw new Error(
+      `Invalid transition from "${currentStatus}" via event "${event}" → "${next}"`,
+    );
+  }
+
+  return next;
 }
 
 // ---------------------------------------------------------------------------
@@ -124,10 +212,49 @@ export type ResourceType =
  * @param context.ownerId — userId of the resource owner (required for applicant own-resource checks)
  */
 export function checkAccess(
-  _principal: AccessPrincipal,
-  _resource: ResourceType,
-  _action: "read" | "write" | "delete",
-  _context?: { ownerId?: string },
+  principal: AccessPrincipal,
+  resource: ResourceType,
+  action: "read" | "write" | "delete",
+  context?: { ownerId?: string },
 ): boolean {
-  throw new Error("Not implemented — replace via backend generation");
+  // 1. admin-all: unrestricted access to all resources
+  if (principal.role === "admin") {
+    return true;
+  }
+
+  // 2. deny-identity-to-reviewer: hard deny, logged implicitly by call site
+  if (principal.role === "reviewer" && resource === "ApplicantIdentity") {
+    return false;
+  }
+
+  // 3. reviewer-blinded-assigned: read-only on BlindedPacket
+  if (principal.role === "reviewer") {
+    if (resource === "BlindedPacket" && action === "read") {
+      return true;
+    }
+    return false;
+  }
+
+  // 4. applicant-own-proposals: read/write own Submission only
+  if (principal.role === "applicant") {
+    if (
+      resource === "Submission" &&
+      (action === "read" || action === "write") &&
+      context?.ownerId === principal.userId
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  // 5. auditor: read-only AuditEvent
+  if (principal.role === "auditor") {
+    if (resource === "AuditEvent" && action === "read") {
+      return true;
+    }
+    return false;
+  }
+
+  // 6. Default: deny
+  return false;
 }
