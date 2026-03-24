@@ -34,12 +34,7 @@ The parser extracts each fenced block, reads the first-line comment as the targe
 
 Unit tests run in the worktree root via `pnpm test:unit --reporter=json`. The runner captures stdout, parses the vitest JSON report, and extracts `numTotalTests`, `numPassedTests`, `numFailedTests`.
 
-Integration tests (`--with-db`) use an ephemeral Docker container:
-```
-docker run -d --name grant-bench-pg-<timestamp> \
-  -e POSTGRES_PASSWORD=bench -p 5433:5432 postgres:15
-```
-`DATABASE_URL=postgresql://postgres:bench@localhost:5433/grant_workflow` is set for the migration and test run. The container is removed after tests regardless of outcome.
+Integration tests (`--with-db`) use an ephemeral local PostgreSQL 18 database. The runner creates a short-lived user and database via `sudo -u postgres psql`, runs `prisma migrate deploy` against it, then runs the integration suite. The user and database are dropped in the cleanup trap regardless of outcome.
 
 ### Result archival
 

@@ -19,10 +19,16 @@
     "zod": "^3.23.0"
   },
   "devDependencies": {
+    "@types/bcrypt": "^5.0.0",
     "@types/node": "^20.0.0",
     "@types/react": "^18.3.0",
     "@types/react-dom": "^18.3.0",
+    "bcrypt": "^5.1.0",
     "prisma": "^6.0.0",
-    "typescript": "^5.5.0"
+    "typescript": "^5.5.0",
+    "vitest-mock-extended": "^2.0.0"
+  },
+  "prisma": {
+    "seed": "ts-node --project tsconfig.json ../../prisma/seeds/seed.ts"
   }
 }

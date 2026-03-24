@@ -6,6 +6,8 @@ Each path applies the same functional specification but differs in how code is g
 The baseline includes **contract stubs** with typed signatures that the generated code must implement.
 Tests import only from contract surfaces — internal file structure is free.
 
+> **Note (benchmark-runner-v2):** `tests/integration-mock/` contains a mock-based version of the integration tests using `vitest-mock-extended` — no database required. Run with `pnpm test:integration:mock`. `tests/integration/` remains the real-DB suite used by the benchmark runner. Configure `mockPrisma.<model>.<method>.mockResolvedValue(...)` per scenario.
+
 ### Contract surfaces (stubs to implement)
 
 | Surface | Location | What it defines |
@@ -20,9 +22,10 @@ Tests import only from contract surfaces — internal file structure is free.
 
 ### P0 — Domain model
 
-- [ ] P0.1 Write `prisma/schema.prisma` — models: `Call`, `Submission`, `ProposalVersion`, `ApplicantIdentity`, `BlindedPacket`, `EligibilityRecord`, `AuditEvent`
-- [ ] P0.2 Implement `packages/domain/src/schemas/index.ts` — replace stubs with real Zod schemas (signatures are defined, implementation is trivial)
-- [ ] P0.3 Write `packages/domain/src/entities/index.ts` — TypeScript interfaces re-exported from schema types
+- [ ] P0.1 Write `app/web/prisma/schema.prisma` — models: `User`, `Call`, `Submission`, `ProposalVersion`, `ApplicantIdentity`, `BlindedPacket`, `EligibilityRecord`, `AuditEvent` (co-located with `@prisma/client` in `app/web/`)
+- [ ] P0.2 Create the initial Prisma migration: run `prisma migrate dev --name init` and commit the generated `prisma/migrations/` directory
+- [ ] P0.3 Implement `packages/domain/src/schemas/index.ts` — replace stubs with real Zod schemas (signatures are defined, implementation is trivial)
+- [ ] P0.4 Write `packages/domain/src/entities/index.ts` — TypeScript interfaces re-exported from schema types
 
 ### P1 — Intake
 
@@ -33,8 +36,12 @@ Tests import only from contract surfaces — internal file structure is free.
 ### P2 — Eligibility
 
 - [ ] P2.1 Implement `evaluateEligibility` exported from `packages/policies/src` — pure function, evaluates inputs against active rule set
-- [ ] P2.2 Implement `runEligibilityCheck` in `app/web/src/server/services/eligibilityService.ts` — persist EligibilityRecord, transition submission status, write audit event
+- [ ] P2.2 Implement `runEligibilityCheck` in `app/web/src/server/services/eligibilityService.ts` — persist EligibilityRecord, transition submission status, write audit event. Derive `activeRules` from the submission's `Call.enabledEligibilityChecks`; fall back to `mvp-profile.md` defaults (`["submittedInEnglish","alignedWithCall","primaryObjectiveIsRd","meetsEuropeanDimension","requestedBudgetKEur"]`) if the call is not found.
 - [ ] P2.3 Implement `app/web/src/app/api/eligibility/route.ts` — replace stub: validate with `EligibilityRequestSchema`, call `verifySession`, call `runEligibilityCheck`
+
+### Seed
+
+- [ ] SD.1 Write `prisma/seeds/seed.ts` — upsert one `User` per role and the default `Call`, using IDs, names, roles, and passwords from `specs/access-policies.md §Dev fixtures`. Hash passwords with bcrypt (10 rounds). Fully idempotent. Run via `pnpm db:seed`.
 
 ### Workflow transitions
 

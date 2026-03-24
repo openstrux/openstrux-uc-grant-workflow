@@ -78,11 +78,17 @@ export const AuditEventSchema = z.object({
 export const IntakeRequestSchema = z.object({
   callId: z.string().min(1),
   applicantAlias: z.string().min(1),
+  // Proposal content
   title: z.string().min(1),
   abstract: z.string().min(1),
   requestedBudgetKEur: z.number().positive(),
   budgetUsage: z.string().min(1),
   tasksBreakdown: z.string().min(1),
+  // Applicant identity (stored separately in ApplicantIdentity — restricted access)
+  legalName: z.string().min(1),
+  email: z.string().email(),
+  country: z.string().min(1),
+  organisation: z.string().min(1),
 });
 
 /** POST /api/intake — 201 response */

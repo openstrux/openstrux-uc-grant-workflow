@@ -48,3 +48,28 @@ All documents presented to reviewers and validators must be pseudonymized. No id
 ## Audit requirements
 
 All access control decisions (allow and deny) are logged as `AuditEvent` with `event_type: "access"`.
+
+## Dev fixtures
+
+The following user IDs and roles are canonical for local development and seeding. Authentication uses `X-Role` / `X-User-Id` request headers (dev mode only).
+
+| User ID | Display name | Role | Password (dev only) |
+|---|---|---|---|
+| `user-applicant-01` | Alice Applicant | `applicant` | `applicant123` |
+| `user-admin-01` | Bob Admin | `admin` | `admin123` |
+| `user-reviewer-01` | Carol Reviewer | `reviewer` | `reviewer123` |
+| `user-validator-01` | David Validator | `validator` | `validator123` |
+| `user-auditor-01` | Eve Auditor | `auditor` | `auditor123` |
+
+The seed must also create a default `Call` record:
+
+```json
+{
+  "id": "eu-oss-fund-2026",
+  "title": "EU Open Source Fund 2026",
+  "description": "Funding for open source software projects with European dimension.",
+  "status": "open",
+  "maxBudgetKEur": 500,
+  "enabledEligibilityChecks": ["submittedInEnglish", "alignedWithCall", "primaryObjectiveIsRd", "meetsEuropeanDimension", "requestedBudgetKEur"]
+}
+```

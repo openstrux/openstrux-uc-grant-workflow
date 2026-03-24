@@ -4,6 +4,10 @@ Version: 0.1.0 | Covers: P0-P2 (v0.6.0)
 
 ## Core entities
 
+### User
+A system actor with a role. Used for dev-mode authentication and seeding; not an external IdP record.
+- `id` (matches `X-User-Id` header), `display_name`, `role` (Principal), `password_hash` (bcrypt, dev only)
+
 ### Call
 A funding call with configuration for eligibility checks and submission window.
 - `id`, `title`, `description`, `open_date`, `close_date`, `status`
@@ -51,9 +55,13 @@ Immutable log entry for workflow, access, and policy decisions.
 ### ReviewStatus (P3+)
 `not_started | assigned | acknowledged | reviewing | completed | withdrawn`
 
+### Principal (role enum)
+`applicant | admin | reviewer | validator | auditor`
+
 ## Relationships
 
 ```
+User (role)
 Call ──< Submission ──< ProposalVersion ──> BlindedPacket
               │
               ├──> ApplicantIdentity (separated, restricted access)

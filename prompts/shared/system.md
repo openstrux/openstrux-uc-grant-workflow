@@ -5,7 +5,7 @@ You are implementing the backend of a privacy-first grant review system. The sys
 ## Stack
 - TypeScript (strict mode)
 - Next.js 15 (App Router, route handlers)
-- Prisma 6 (PostgreSQL)
+- Prisma 6 (PostgreSQL 18)
 - Zod 3 (input validation)
 - JWT-based role middleware (no external IdP required for P0-P2)
 
@@ -29,7 +29,7 @@ The repository ships with:
   - `app/web/src/server/services/eligibilityService.ts` — `runEligibilityCheck`
   - `app/web/src/lib/dal.ts` — `verifySession(req)` → `Principal | null`
   - `app/web/src/app/api/intake/route.ts` and `eligibility/route.ts` — route stubs
-- `prisma/` — scaffolded directory (schema must be implemented)
+- `app/web/prisma/` — Prisma schema location (co-located with `@prisma/client` declared in `app/web/package.json`; schema must be implemented at `app/web/prisma/schema.prisma`)
 
 Tests import only from these contract surfaces. Internal file structure within packages is free.
 
