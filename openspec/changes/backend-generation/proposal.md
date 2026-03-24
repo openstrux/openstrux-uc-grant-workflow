@@ -22,18 +22,18 @@ The baseline contains typed stubs that define the contract between front-end and
   - `isValidTransition` / `getNextStatus` — workflow state machine
 - Internal file structure is free as long as the barrel resolves
 
-### Service layer (`app/web/src/server/services/`)
+### Service layer (`src/server/services/`)
 - `submissionService.ts` — `submitProposal`, `listSubmissions`, `getSubmission`
 - `eligibilityService.ts` — `runEligibilityCheck`
 
 ### Auth (DAL)
-- `app/web/src/lib/dal.ts` — `verifySession(req)` → `Principal | null` (dev-mode `X-Role`/`X-User-Id` headers for P0-P2)
+- `src/lib/dal.ts` — `verifySession(req)` → `Principal | null` (dev-mode `X-Role`/`X-User-Id` headers for P0-P2)
 
-### API routes (`app/web/src/app/api/`)
-- `app/web/src/app/api/intake/route.ts` — POST handler (replace stub), validates with `IntakeRequestSchema`
-- `app/web/src/app/api/eligibility/route.ts` — POST handler (replace stub), validates with `EligibilityRequestSchema`
+### API routes (`src/app/api/`)
+- `src/app/api/intake/route.ts` — POST handler (replace stub), validates with `IntakeRequestSchema`
+- `src/app/api/eligibility/route.ts` — POST handler (replace stub), validates with `EligibilityRequestSchema`
 
 ## Acceptance criteria
 
 All tests in `tests/unit/` and `tests/integration/` pass.
-`tsc --noEmit` exits 0 in `app/web/`.
+`tsc --noEmit` exits 0 at the project root.

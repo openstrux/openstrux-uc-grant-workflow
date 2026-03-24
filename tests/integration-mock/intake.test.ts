@@ -9,7 +9,7 @@
 
 import { describe, it, expect } from "vitest";
 import { mockPrisma } from "./setup";
-import { submitProposal } from "../../app/web/src/server/services/submissionService";
+import { submitProposal } from "../../src/server/services/submissionService";
 
 describe("Intake service (mock)", () => {
   it("creates a submission with a proposal version", async () => {

@@ -57,8 +57,8 @@ npx strux build --explain
 ## Step 5 — Fill gaps
 
 After `strux build`, check for and implement anything the generated output doesn't cover:
-- Route handler wiring (`app/web/src/app/api/*/route.ts` → import and call generated services)
-- Auth middleware (`app/web/src/server/auth/middleware.ts` → JWT extraction)
+- Route handler wiring (`src/app/api/*/route.ts` → import and call generated services)
+- Auth middleware (`src/server/auth/middleware.ts` → JWT extraction)
 - Complex business logic the panels couldn't express
 
 Write manual gap-fills to `output/openstrux/`. Generated files stay in `.openstrux/build/`.

@@ -14,30 +14,30 @@ Tests import only from contract surfaces — internal file structure is free.
 |---|---|---|
 | Domain schemas | `packages/domain/src/schemas/index.ts` | Zod schemas for entities + API request/response shapes |
 | Policy functions | `packages/policies/src/index.ts` | Pure functions: `evaluateEligibility`, `createBlindedPacket`, `isValidTransition`, `getNextStatus` |
-| Submission service | `app/web/src/server/services/submissionService.ts` | `submitProposal`, `listSubmissions`, `getSubmission` |
-| Eligibility service | `app/web/src/server/services/eligibilityService.ts` | `runEligibilityCheck` |
-| DAL | `app/web/src/lib/dal.ts` | `verifySession(req)` → `Principal` |
-| Route: intake | `app/web/src/app/api/intake/route.ts` | `POST` — validates with `IntakeRequestSchema`, returns `IntakeResponseSchema` |
-| Route: eligibility | `app/web/src/app/api/eligibility/route.ts` | `POST` — validates with `EligibilityRequestSchema`, returns `EligibilityResponseSchema` |
+| Submission service | `src/server/services/submissionService.ts` | `submitProposal`, `listSubmissions`, `getSubmission` |
+| Eligibility service | `src/server/services/eligibilityService.ts` | `runEligibilityCheck` |
+| DAL | `src/lib/dal.ts` | `verifySession(req)` → `Principal` |
+| Route: intake | `src/app/api/intake/route.ts` | `POST` — validates with `IntakeRequestSchema`, returns `IntakeResponseSchema` |
+| Route: eligibility | `src/app/api/eligibility/route.ts` | `POST` — validates with `EligibilityRequestSchema`, returns `EligibilityResponseSchema` |
 
 ### P0 — Domain model
 
-- [ ] P0.1 Write `app/web/prisma/schema.prisma` — models: `User`, `Call`, `Submission`, `ProposalVersion`, `ApplicantIdentity`, `BlindedPacket`, `EligibilityRecord`, `AuditEvent` (co-located with `@prisma/client` in `app/web/`)
+- [ ] P0.1 Write `prisma/schema.prisma` — models: `User`, `Call`, `Submission`, `ProposalVersion`, `ApplicantIdentity`, `BlindedPacket`, `EligibilityRecord`, `AuditEvent` (co-located with `@prisma/client` in ``)
 - [ ] P0.2 Create the initial Prisma migration: run `prisma migrate dev --name init` and commit the generated `prisma/migrations/` directory
 - [ ] P0.3 Implement `packages/domain/src/schemas/index.ts` — replace stubs with real Zod schemas (signatures are defined, implementation is trivial)
 - [ ] P0.4 Write `packages/domain/src/entities/index.ts` — TypeScript interfaces re-exported from schema types
 
 ### P1 — Intake
 
-- [ ] P1.1 Implement `submitProposal` in `app/web/src/server/services/submissionService.ts` — create submission, version, blinded packet, audit event (in a Prisma transaction)
+- [ ] P1.1 Implement `submitProposal` in `src/server/services/submissionService.ts` — create submission, version, blinded packet, audit event (in a Prisma transaction)
 - [ ] P1.2 Implement `createBlindedPacket` exported from `packages/policies/src` — strip identity fields per `specs/access-policies.md`
-- [ ] P1.3 Implement `app/web/src/app/api/intake/route.ts` — replace stub: validate with `IntakeRequestSchema`, call `verifySession`, call `submitProposal`
+- [ ] P1.3 Implement `src/app/api/intake/route.ts` — replace stub: validate with `IntakeRequestSchema`, call `verifySession`, call `submitProposal`
 
 ### P2 — Eligibility
 
 - [ ] P2.1 Implement `evaluateEligibility` exported from `packages/policies/src` — pure function, evaluates inputs against active rule set
-- [ ] P2.2 Implement `runEligibilityCheck` in `app/web/src/server/services/eligibilityService.ts` — persist EligibilityRecord, transition submission status, write audit event. Derive `activeRules` from the submission's `Call.enabledEligibilityChecks`; fall back to `mvp-profile.md` defaults (`["submittedInEnglish","alignedWithCall","primaryObjectiveIsRd","meetsEuropeanDimension","requestedBudgetKEur"]`) if the call is not found.
-- [ ] P2.3 Implement `app/web/src/app/api/eligibility/route.ts` — replace stub: validate with `EligibilityRequestSchema`, call `verifySession`, call `runEligibilityCheck`
+- [ ] P2.2 Implement `runEligibilityCheck` in `src/server/services/eligibilityService.ts` — persist EligibilityRecord, transition submission status, write audit event. Derive `activeRules` from the submission's `Call.enabledEligibilityChecks`; fall back to `mvp-profile.md` defaults (`["submittedInEnglish","alignedWithCall","primaryObjectiveIsRd","meetsEuropeanDimension","requestedBudgetKEur"]`) if the call is not found.
+- [ ] P2.3 Implement `src/app/api/eligibility/route.ts` — replace stub: validate with `EligibilityRequestSchema`, call `verifySession`, call `runEligibilityCheck`
 
 ### Seed
 
@@ -49,11 +49,11 @@ Tests import only from contract surfaces — internal file structure is free.
 
 ### Auth (DAL)
 
-- [ ] AU.1 Implement `verifySession` in `app/web/src/lib/dal.ts` — extract principal from `X-Role`/`X-User-Id` headers (dev mode), return `Principal | null`
+- [ ] AU.1 Implement `verifySession` in `src/lib/dal.ts` — extract principal from `X-Role`/`X-User-Id` headers (dev mode), return `Principal | null`
 - [ ] AU.2 Each route handler must call `verifySession` and return 401 (unauthenticated) or 403 (wrong role) before any business logic
 
 ### Verification
 
-- [ ] V.1 `tsc --noEmit` exits 0 in `app/web/`
+- [ ] V.1 `tsc --noEmit` exits 0 in ``
 - [ ] V.2 All unit tests in `tests/unit/` pass
 - [ ] V.3 All integration tests in `tests/integration/` pass (requires DB)

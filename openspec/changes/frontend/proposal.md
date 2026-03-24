@@ -8,6 +8,6 @@ The grant workflow application needs a pre-built frontend that defines the servi
 - Forms: proposal intake, eligibility inputs
 - Navigation: dashboard, submission detail, results viewer
 - Results viewer page at `/results` reading `results/*/benchmark.json`
-- All pages call predefined service interface stubs in `app/web/src/server/services/`
+- All pages call predefined service interface stubs in `src/server/services/`
 
 ## Status: ARCHIVED

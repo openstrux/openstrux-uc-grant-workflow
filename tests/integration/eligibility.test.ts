@@ -9,8 +9,8 @@
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { PrismaClient } from "@prisma/client";
-import { submitProposal } from "../../app/web/src/server/services/submissionService";
-import { runEligibilityCheck } from "../../app/web/src/server/services/eligibilityService";
+import { submitProposal } from "../../src/server/services/submissionService";
+import { runEligibilityCheck } from "../../src/server/services/eligibilityService";
 
 const prisma = new PrismaClient({
   datasources: { db: { url: process.env.DATABASE_URL } },
@@ -34,7 +34,7 @@ afterAll(async () => {
 
 async function createTestSubmission(alias: string): Promise<string> {
   const result = await submitProposal({
-    callId: "call-test",
+    callId: "eu-oss-fund-2026",
     applicantAlias: alias,
     title: "Eligibility Test Proposal",
     abstract: "For eligibility testing.",

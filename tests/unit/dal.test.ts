@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { verifySession } from "../../app/web/src/lib/dal";
+import { verifySession } from "../../src/lib/dal";
 
 function req(headers: Record<string, string> = {}): Request {
   return new Request("http://localhost/api/test", { headers });

@@ -25,11 +25,11 @@ The repository ships with:
 - Contract stubs with typed signatures that you must implement:
   - `packages/domain/src/schemas/index.ts` — Zod schemas (entity + API request/response)
   - `packages/policies/src/index.ts` — barrel exporting pure functions (`evaluateEligibility`, `createBlindedPacket`, `isValidTransition`, `getNextStatus`)
-  - `app/web/src/server/services/submissionService.ts` — `submitProposal`, `listSubmissions`, `getSubmission`
-  - `app/web/src/server/services/eligibilityService.ts` — `runEligibilityCheck`
-  - `app/web/src/lib/dal.ts` — `verifySession(req)` → `Principal | null`
-  - `app/web/src/app/api/intake/route.ts` and `eligibility/route.ts` — route stubs
-- `app/web/prisma/` — Prisma schema location (co-located with `@prisma/client` declared in `app/web/package.json`; schema must be implemented at `app/web/prisma/schema.prisma`)
+  - `src/server/services/submissionService.ts` — `submitProposal`, `listSubmissions`, `getSubmission`
+  - `src/server/services/eligibilityService.ts` — `runEligibilityCheck`
+  - `src/lib/dal.ts` — `verifySession(req)` → `Principal | null`
+  - `src/app/api/intake/route.ts` and `eligibility/route.ts` — route stubs
+- `prisma/` — Prisma schema location (co-located with `@prisma/client` declared in `app/web/package.json`; schema must be implemented at `prisma/schema.prisma`)
 
 Tests import only from these contract surfaces. Internal file structure within packages is free.
 

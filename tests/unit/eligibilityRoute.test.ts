@@ -12,7 +12,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { POST } from "../../app/web/src/app/api/eligibility/route";
+import { POST } from "../../src/app/api/eligibility/route";
 
 function makeReq(headers: Record<string, string>, body: unknown): Request {
   return new Request("http://localhost/api/eligibility", {

@@ -9,8 +9,8 @@
 
 import { describe, it, expect } from "vitest";
 import { mockPrisma } from "./setup";
-import { submitProposal } from "../../app/web/src/server/services/submissionService";
-import { runEligibilityCheck } from "../../app/web/src/server/services/eligibilityService";
+import { submitProposal } from "../../src/server/services/submissionService";
+import { runEligibilityCheck } from "../../src/server/services/eligibilityService";
 
 async function createTestSubmission(alias: string): Promise<string> {
   const submissionId = `sub-${alias}`;

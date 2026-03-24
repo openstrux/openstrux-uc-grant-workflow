@@ -21,11 +21,11 @@ output/direct/
   prisma/seeds/seed.ts
   packages/domain/src/schemas/index.ts
   packages/policies/src/index.ts        (barrel — may also add internal modules)
-  app/web/src/lib/dal.ts
-  app/web/src/server/services/submissionService.ts
-  app/web/src/server/services/eligibilityService.ts
-  app/web/src/app/api/intake/route.ts
-  app/web/src/app/api/eligibility/route.ts
+  src/lib/dal.ts
+  src/server/services/submissionService.ts
+  src/server/services/eligibilityService.ts
+  src/app/api/intake/route.ts
+  src/app/api/eligibility/route.ts
 ```
 
 The migration SQL must match `schema.prisma` exactly. Use a timestamp prefix in the format `YYYYMMDDHHMMSS`.

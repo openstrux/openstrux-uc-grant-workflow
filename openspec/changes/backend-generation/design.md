@@ -12,13 +12,13 @@ packages/policies/src/index.ts          Barrel exporting pure business-logic fun
                                         evaluateEligibility, createBlindedPacket,
                                         isValidTransition, getNextStatus
 
-app/web/src/lib/dal.ts                  verifySession(req) → Principal | null
+src/lib/dal.ts                  verifySession(req) → Principal | null
 
-app/web/src/server/services/
+src/server/services/
   submissionService.ts                  submitProposal, listSubmissions, getSubmission
   eligibilityService.ts                 runEligibilityCheck
 
-app/web/src/app/api/
+src/app/api/
   intake/route.ts                       POST — validates with IntakeRequestSchema
   eligibility/route.ts                  POST — validates with EligibilityRequestSchema
 
@@ -46,7 +46,7 @@ packages/policies/src/
 
 **Audit events**: Both `submitProposal` and `runEligibilityCheck` write audit events inside Prisma transactions.
 
-**Auth (DAL)**: Route handlers call `verifySession(req)` from `app/web/src/lib/dal.ts`. For P0-P2, uses dev-mode `X-Role`/`X-User-Id` headers. Returns 401 (no session) or 403 (wrong role) before any business logic.
+**Auth (DAL)**: Route handlers call `verifySession(req)` from `src/lib/dal.ts`. For P0-P2, uses dev-mode `X-Role`/`X-User-Id` headers. Returns 401 (no session) or 403 (wrong role) before any business logic.
 
 ## Output location
 

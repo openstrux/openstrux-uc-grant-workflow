@@ -9,7 +9,7 @@
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { PrismaClient } from "@prisma/client";
-import { submitProposal } from "../../app/web/src/server/services/submissionService";
+import { submitProposal } from "../../src/server/services/submissionService";
 
 const prisma = new PrismaClient({
   datasources: { db: { url: process.env.DATABASE_URL } },
@@ -28,7 +28,7 @@ afterAll(async () => {
 describe("Intake service (integration)", () => {
   it("creates a submission with a proposal version", async () => {
     const result = await submitProposal({
-      callId: "call-test",
+      callId: "eu-oss-fund-2026",
       applicantAlias: "test-researcher-001",
       title: "Test Proposal",
       abstract: "A test abstract.",
@@ -48,7 +48,7 @@ describe("Intake service (integration)", () => {
 
   it("creates a blinded packet for the effective proposal version", async () => {
     const result = await submitProposal({
-      callId: "call-test",
+      callId: "eu-oss-fund-2026",
       applicantAlias: "test-researcher-002",
       title: "Another Test Proposal",
       abstract: "Another test abstract.",
@@ -70,7 +70,7 @@ describe("Intake service (integration)", () => {
 
   it("generates an audit event on submission creation", async () => {
     const result = await submitProposal({
-      callId: "call-test",
+      callId: "eu-oss-fund-2026",
       applicantAlias: "test-researcher-003",
       title: "Audit Test Proposal",
       abstract: "Audit test.",

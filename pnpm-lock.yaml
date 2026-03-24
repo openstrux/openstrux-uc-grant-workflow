@@ -7,43 +7,13 @@ settings:
 importers:
 
   .:
-    devDependencies:
-      '@typescript-eslint/eslint-plugin':
-        specifier: ^7.0.0
-        version: 7.18.0(@typescript-eslint/parser@7.18.0(eslint@8.57.1)(typescript@5.9.3))(eslint@8.57.1)(typescript@5.9.3)
-      '@typescript-eslint/parser':
-        specifier: ^7.0.0
-        version: 7.18.0(eslint@8.57.1)(typescript@5.9.3)
-      eslint:
-        specifier: ^8.57.0
-        version: 8.57.1
-      eslint-config-prettier:
-        specifier: ^9.1.0
-        version: 9.1.2(eslint@8.57.1)
-      eslint-plugin-react:
-        specifier: ^7.34.0
-        version: 7.37.5(eslint@8.57.1)
-      eslint-plugin-react-hooks:
-        specifier: ^4.6.0
-        version: 4.6.2(eslint@8.57.1)
-      prettier:
-        specifier: ^3.2.0
-        version: 3.8.1
-      prisma:
-        specifier: 6.19.2
-        version: 6.19.2(typescript@5.9.3)
-      typescript:
-        specifier: ^5.5.0
-        version: 5.9.3
-      vitest:
-        specifier: ^1.6.0
-        version: 1.6.1(@types/node@20.19.37)
-      vitest-mock-extended:
-        specifier: ^2.0.0
-        version: 2.0.2(typescript@5.9.3)(vitest@1.6.1(@types/node@20.19.37))
-
-  app/web:
     dependencies:
+      '@grant-workflow/domain':
+        specifier: workspace:*
+        version: link:packages/domain
+      '@grant-workflow/policies':
+        specifier: workspace:*
+        version: link:packages/policies
       '@headlessui/react':
         specifier: ^2.1.0
         version: 2.2.9(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -81,15 +51,39 @@ importers:
       '@types/react-dom':
         specifier: ^18.3.0
         version: 18.3.7(@types/react@18.3.28)
+      '@typescript-eslint/eslint-plugin':
+        specifier: ^7.0.0
+        version: 7.18.0(@typescript-eslint/parser@7.18.0(eslint@8.57.1)(typescript@5.9.3))(eslint@8.57.1)(typescript@5.9.3)
+      '@typescript-eslint/parser':
+        specifier: ^7.0.0
+        version: 7.18.0(eslint@8.57.1)(typescript@5.9.3)
       bcrypt:
         specifier: ^5.1.0
         version: 5.1.1
+      eslint:
+        specifier: ^8.57.0
+        version: 8.57.1
+      eslint-config-prettier:
+        specifier: ^9.1.0
+        version: 9.1.2(eslint@8.57.1)
+      eslint-plugin-react:
+        specifier: ^7.34.0
+        version: 7.37.5(eslint@8.57.1)
+      eslint-plugin-react-hooks:
+        specifier: ^4.6.0
+        version: 4.6.2(eslint@8.57.1)
+      prettier:
+        specifier: ^3.2.0
+        version: 3.8.1
       prisma:
-        specifier: ^6.0.0
+        specifier: 6.19.2
         version: 6.19.2(typescript@5.9.3)
       typescript:
         specifier: ^5.5.0
         version: 5.9.3
+      vitest:
+        specifier: ^1.6.0
+        version: 1.6.1(@types/node@20.19.37)
       vitest-mock-extended:
         specifier: ^2.0.0
         version: 2.0.2(typescript@5.9.3)(vitest@1.6.1(@types/node@20.19.37))

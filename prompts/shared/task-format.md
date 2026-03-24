@@ -26,7 +26,7 @@ After completing all files, confirm:
 - [ ] All entities from `specs/domain-model.md` are implemented
 - [ ] Access policies from `specs/access-policies.md` are enforced
 - [ ] `tsc --noEmit` would pass (no type errors)
-- [ ] All referenced service interfaces from `app/web/` are satisfied
+- [ ] All referenced service interfaces from `` are satisfied
 
 ## Benchmark fields
 
