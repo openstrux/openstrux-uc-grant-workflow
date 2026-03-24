@@ -73,7 +73,7 @@ importers:
         specifier: ^18.3.0
         version: 18.3.7(@types/react@18.3.28)
       prisma:
-        specifier: ^6.0.0
+        specifier: 6.19.2
         version: 6.19.2(typescript@5.9.3)
       typescript:
         specifier: ^5.5.0
