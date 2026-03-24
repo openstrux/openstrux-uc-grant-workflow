@@ -18,7 +18,7 @@
     "test:e2e":             "vitest run tests/e2e",
     "validate":             "pnpm type-check && pnpm lint && pnpm format:check && pnpm test:unit",
     "db:seed":              "prisma db seed",
-    "reset":                "bash scripts/reset.sh"
+    "reset":                "bash benchmarks/scripts/reset.sh"
   },
   "dependencies": {
     "@headlessui/react":        "^2.1.0",

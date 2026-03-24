@@ -27,3 +27,4 @@
 - P3-P6 features (review scoring, clarification, validation, audit export) — stub with `501 Not Implemented` if needed.
 - UI components — the frontend is pre-built.
 - External IdP integration — use role middleware with dev-mode `X-Role` header for testing.
+- The `benchmarks/` directory — it contains benchmark tooling and run artefacts, not application code. Do not read or modify anything under `benchmarks/`.
