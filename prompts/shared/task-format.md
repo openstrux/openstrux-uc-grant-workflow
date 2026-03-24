@@ -8,7 +8,7 @@ Start with a brief file list:
 ```
 Files to create/modify:
 - prisma/schema.prisma
-- packages/domain/src/entities/Proposal.ts
+- src/domain/src/entities/Proposal.ts
 - ...
 ```
 

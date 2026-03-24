@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { isValidTransition, getNextStatus } from "../../packages/policies/src";
+import { isValidTransition, getNextStatus } from "../../src/policies";
 
 describe("workflow transitions", () => {
   it("allows draft → submitted", () => {

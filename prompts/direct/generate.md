@@ -19,8 +19,8 @@ output/direct/
   prisma/schema.prisma
   prisma/migrations/<timestamp>_init/migration.sql   (initial migration SQL)
   prisma/seeds/seed.ts
-  packages/domain/src/schemas/index.ts
-  packages/policies/src/index.ts        (barrel — may also add internal modules)
+  src/domain/schemas/index.ts
+  src/policies/index.ts        (barrel — may also add internal modules)
   src/lib/dal.ts
   src/server/services/submissionService.ts
   src/server/services/eligibilityService.ts

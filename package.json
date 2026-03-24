@@ -21,8 +21,6 @@
     "reset":                "bash scripts/reset.sh"
   },
   "dependencies": {
-    "@grant-workflow/domain":   "workspace:*",
-    "@grant-workflow/policies": "workspace:*",
     "@headlessui/react":        "^2.1.0",
     "@prisma/client":           "^6.0.0",
     "lucide-react":             "^0.400.0",

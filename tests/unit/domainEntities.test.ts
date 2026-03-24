@@ -15,7 +15,7 @@ import {
   IntakeRequestSchema,
   EligibilityRequestSchema,
   EligibilityResponseSchema,
-} from "../../packages/domain/src/schemas";
+} from "../../src/domain/schemas";
 
 describe("SubmissionSchema", () => {
   it("accepts valid submission", () => {

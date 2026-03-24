@@ -12,11 +12,11 @@ The baseline contains typed stubs that define the contract between front-end and
 - Complete `prisma/schema.prisma` with all P0-P2 models: `Submission`, `ProposalVersion`, `ApplicantIdentity`, `BlindedPacket`, `EligibilityRecord`, `AuditEvent`, `Call`
 - Relations and indexes as required by the domain model
 
-### Domain package (`packages/domain/`)
-- `packages/domain/src/schemas/index.ts` — Zod schemas for all entities + API request/response shapes (single source of truth; all types derived via `z.infer<>`)
+### Domain package (`src/domain/`)
+- `src/domain/schemas/index.ts` — Zod schemas for all entities + API request/response shapes (single source of truth; all types derived via `z.infer<>`)
 
-### Policy package (`packages/policies/`)
-- `packages/policies/src/index.ts` — barrel exporting pure business-logic functions:
+### Policy package (`src/policies/`)
+- `src/policies/index.ts` — barrel exporting pure business-logic functions:
   - `evaluateEligibility` — rule evaluation against active rule set
   - `createBlindedPacket` — strip identity fields from proposal content
   - `isValidTransition` / `getNextStatus` — workflow state machine

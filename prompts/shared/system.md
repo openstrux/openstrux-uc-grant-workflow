@@ -14,7 +14,7 @@ You are implementing the backend of a privacy-first grant review system. The sys
 1. **Structure first**: generated code faithfully implements the specs. Do not add behavior not specified.
 2. **Trust built in**: access controls are implemented at the service layer, not just in the UI.
 3. **Identity separation**: `ApplicantIdentity` is always in a separate code and data path from `ProposalVersion` content.
-4. **Explicit policy**: eligibility and access rules are functions in `packages/policies/`, not hidden application behavior.
+4. **Explicit policy**: eligibility and access rules are functions in `src/policies/`, not hidden application behavior.
 5. **Audit trail**: every significant action produces an `AuditEvent`.
 
 ## What already exists
@@ -23,8 +23,8 @@ The repository ships with:
 - `app/web/` — Next.js frontend (pages, forms, navigation) calling predefined service interfaces
 - `tests/unit/` and `tests/integration/` — vitest tests as acceptance criteria
 - Contract stubs with typed signatures that you must implement:
-  - `packages/domain/src/schemas/index.ts` — Zod schemas (entity + API request/response)
-  - `packages/policies/src/index.ts` — barrel exporting pure functions (`evaluateEligibility`, `createBlindedPacket`, `isValidTransition`, `getNextStatus`)
+  - `src/domain/schemas/index.ts` — Zod schemas (entity + API request/response)
+  - `src/policies/index.ts` — barrel exporting pure functions (`evaluateEligibility`, `createBlindedPacket`, `isValidTransition`, `getNextStatus`)
   - `src/server/services/submissionService.ts` — `submitProposal`, `listSubmissions`, `getSubmission`
   - `src/server/services/eligibilityService.ts` — `runEligibilityCheck`
   - `src/lib/dal.ts` — `verifySession(req)` → `Principal | null`

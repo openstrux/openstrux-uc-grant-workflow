@@ -5,10 +5,10 @@ The backend is a layered TypeScript application with a contract-first design. Ty
 ### Contract surfaces
 
 ```
-packages/domain/src/schemas/index.ts    Zod schemas (entity + API request/response)
+src/domain/schemas/index.ts    Zod schemas (entity + API request/response)
                                         Single source of truth — all types via z.infer<>
 
-packages/policies/src/index.ts          Barrel exporting pure business-logic functions:
+src/policies/index.ts          Barrel exporting pure business-logic functions:
                                         evaluateEligibility, createBlindedPacket,
                                         isValidTransition, getNextStatus
 
@@ -27,9 +27,9 @@ prisma/schema.prisma                    Database models matching domain model
 
 ### Internal structure (free)
 
-The `packages/policies/src/` barrel may delegate to internal modules:
+The `src/policies/` barrel may delegate to internal modules:
 ```
-packages/policies/src/
+src/policies/
   index.ts              ← barrel (contract surface, tested)
   eligibility/          ← internal (free to organise)
   workflow/             ← internal (free to organise)
@@ -50,6 +50,6 @@ packages/policies/src/
 
 ## Output location
 
-Write all files at their natural in-tree paths (`prisma/schema.prisma`, `packages/domain/src/schemas/index.ts`, etc.). Existing stubs are replaced in place.
+Write all files at their natural in-tree paths (`prisma/schema.prisma`, `src/domain/schemas/index.ts`, etc.). Existing stubs are replaced in place.
 
 For the Openstrux path: `strux build` emits compiled output to `.openstrux/build/`. The `@openstrux/build` path alias in `tsconfig.json` resolves those files at compile time.

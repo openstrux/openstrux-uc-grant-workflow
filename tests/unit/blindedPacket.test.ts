@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { createBlindedPacket } from "../../packages/policies/src";
+import { createBlindedPacket } from "../../src/policies";
 import expectedBlinded from "../fixtures/blinded-packets/expected-blinded.json";
 
 describe("createBlindedPacket (golden test)", () => {

@@ -12,8 +12,8 @@ Tests import only from contract surfaces — internal file structure is free.
 
 | Surface | Location | What it defines |
 |---|---|---|
-| Domain schemas | `packages/domain/src/schemas/index.ts` | Zod schemas for entities + API request/response shapes |
-| Policy functions | `packages/policies/src/index.ts` | Pure functions: `evaluateEligibility`, `createBlindedPacket`, `isValidTransition`, `getNextStatus` |
+| Domain schemas | `src/domain/schemas/index.ts` | Zod schemas for entities + API request/response shapes |
+| Policy functions | `src/policies/index.ts` | Pure functions: `evaluateEligibility`, `createBlindedPacket`, `isValidTransition`, `getNextStatus` |
 | Submission service | `src/server/services/submissionService.ts` | `submitProposal`, `listSubmissions`, `getSubmission` |
 | Eligibility service | `src/server/services/eligibilityService.ts` | `runEligibilityCheck` |
 | DAL | `src/lib/dal.ts` | `verifySession(req)` → `Principal` |
@@ -24,18 +24,18 @@ Tests import only from contract surfaces — internal file structure is free.
 
 - [ ] P0.1 Write `prisma/schema.prisma` — models: `User`, `Call`, `Submission`, `ProposalVersion`, `ApplicantIdentity`, `BlindedPacket`, `EligibilityRecord`, `AuditEvent` (co-located with `@prisma/client` in ``)
 - [ ] P0.2 Create the initial Prisma migration: run `prisma migrate dev --name init` and commit the generated `prisma/migrations/` directory
-- [ ] P0.3 Implement `packages/domain/src/schemas/index.ts` — replace stubs with real Zod schemas (signatures are defined, implementation is trivial)
-- [ ] P0.4 Write `packages/domain/src/entities/index.ts` — TypeScript interfaces re-exported from schema types
+- [ ] P0.3 Implement `src/domain/schemas/index.ts` — replace stubs with real Zod schemas (signatures are defined, implementation is trivial)
+- [ ] P0.4 Write `src/domain/src/entities/index.ts` — TypeScript interfaces re-exported from schema types
 
 ### P1 — Intake
 
 - [ ] P1.1 Implement `submitProposal` in `src/server/services/submissionService.ts` — create submission, version, blinded packet, audit event (in a Prisma transaction)
-- [ ] P1.2 Implement `createBlindedPacket` exported from `packages/policies/src` — strip identity fields per `specs/access-policies.md`
+- [ ] P1.2 Implement `createBlindedPacket` exported from `src/policies` — strip identity fields per `specs/access-policies.md`
 - [ ] P1.3 Implement `src/app/api/intake/route.ts` — replace stub: validate with `IntakeRequestSchema`, call `verifySession`, call `submitProposal`
 
 ### P2 — Eligibility
 
-- [ ] P2.1 Implement `evaluateEligibility` exported from `packages/policies/src` — pure function, evaluates inputs against active rule set
+- [ ] P2.1 Implement `evaluateEligibility` exported from `src/policies` — pure function, evaluates inputs against active rule set
 - [ ] P2.2 Implement `runEligibilityCheck` in `src/server/services/eligibilityService.ts` — persist EligibilityRecord, transition submission status, write audit event. Derive `activeRules` from the submission's `Call.enabledEligibilityChecks`; fall back to `mvp-profile.md` defaults (`["submittedInEnglish","alignedWithCall","primaryObjectiveIsRd","meetsEuropeanDimension","requestedBudgetKEur"]`) if the call is not found.
 - [ ] P2.3 Implement `src/app/api/eligibility/route.ts` — replace stub: validate with `EligibilityRequestSchema`, call `verifySession`, call `runEligibilityCheck`
 
@@ -45,7 +45,7 @@ Tests import only from contract surfaces — internal file structure is free.
 
 ### Workflow transitions
 
-- [ ] WT.1 Implement `isValidTransition` and `getNextStatus` exported from `packages/policies/src` — per `specs/workflow-states.md`
+- [ ] WT.1 Implement `isValidTransition` and `getNextStatus` exported from `src/policies` — per `specs/workflow-states.md`
 
 ### Auth (DAL)
 
