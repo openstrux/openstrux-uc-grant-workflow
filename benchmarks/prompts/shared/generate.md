@@ -3,8 +3,12 @@
 ## Change to apply
 
 You are applying the `backend` change. Read these files before generating any code:
-- `openspec/changes/backend/design.md` — architecture, key decisions, and rationale
+- `openspec/changes/backend/design.md` — contract surfaces and output location
 - `openspec/changes/backend/tasks.md` — authoritative task checklist with contract surfaces table
+
+## Testing constraints
+
+The integration tests (`tests/integration/`) clean up test data by calling `prisma.submission.deleteMany(...)`. For this to succeed, all Prisma child models that reference `Submission` must use `onDelete: Cascade` in `prisma/schema.prisma`. Missing cascades cause a foreign key violation in `afterAll` even when all tests pass, producing a false exit code 1.
 
 ## Specifications (source of truth)
 
@@ -16,7 +20,7 @@ Read these files — they define what to build:
 
 ## Tasks
 
-Execute every task in `openspec/changes/backend/tasks.md` in order. The frontend and tests already exist — you are generating the backend they call. The baseline includes contract stubs (`@generated-stub`) with typed signatures; implement them. The contract surfaces table in `tasks.md` lists every stub that must be replaced.
+Complete every task in `openspec/changes/backend/tasks.md`. The frontend and tests already exist — you are generating the backend they call. The baseline includes contract stubs (`@generated-stub`) with typed signatures; implement them. The contract surfaces table in `tasks.md` lists every stub that must be replaced. Follow the path-specific instructions below for how to approach generation.
 
 ## Verification
 

@@ -9,7 +9,7 @@ The grant workflow repository is initialized with a frontend, contract stubs, an
 The baseline contains typed stubs that define the contract between front-end and back-end. Tests import only from these contract surfaces. Internal file structure within packages is free.
 
 ### Prisma schema
-- Complete `prisma/schema.prisma` with all P0-P2 models: `Submission`, `ProposalVersion`, `ApplicantIdentity`, `BlindedPacket`, `EligibilityRecord`, `AuditEvent`, `Call`
+- Complete `prisma/schema.prisma` with all P0-P2 models: `User`, `Call`, `Submission`, `ProposalVersion`, `ApplicantIdentity`, `BlindedPacket`, `EligibilityRecord`, `AuditEvent`
 - Relations and indexes as required by the domain model
 
 ### Domain package (`src/domain/`)
@@ -28,12 +28,19 @@ The baseline contains typed stubs that define the contract between front-end and
 
 ### Auth (DAL)
 - `src/lib/dal.ts` — `verifySession(req)` → `Principal | null` (dev-mode `X-Role`/`X-User-Id` headers for P0-P2)
+- `src/lib/prisma.ts` — singleton `PrismaClient` instance (process-scoped, dev-safe)
 
 ### API routes (`src/app/api/`)
 - `src/app/api/intake/route.ts` — POST handler (replace stub), validates with `IntakeRequestSchema`
 - `src/app/api/eligibility/route.ts` — POST handler (replace stub), validates with `EligibilityRequestSchema`
 
+### Seed
+
+- `prisma/seeds/seed.ts` — upsert dev fixture users (one per role) and the default `Call` record per `openspec/specs/access-policies.md §Dev fixtures`. Fully idempotent.
+
 ## Acceptance criteria
 
-All tests in `tests/unit/` and `tests/integration/` pass.
-`tsc --noEmit` exits 0 at the project root.
+- All tests in `tests/unit/` pass
+- All tests in `tests/integration-mock/` pass (no database required)
+- All tests in `tests/integration/` pass (requires `DATABASE_URL`)
+- `tsc --noEmit` exits 0 at the project root
