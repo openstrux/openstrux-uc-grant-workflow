@@ -1,0 +1,27 @@
+{
+  "timestamp": "2026-03-25T08:58:30Z",
+  "path": "direct",
+  "promptVersion": "8ff9fe9",
+  "llm": "claude-sonnet-4-6",
+  "generatedFileCount": 0,
+  "totalLines": 0,
+  "inputTokens": 0,
+  "outputTokens": 0,
+  "timeSeconds": 0,
+  "retries": 0,
+  "testSuites": {
+    "unit": {
+      "total": 76,
+      "passed": 76,
+      "failed": 0
+    },
+    "integration": {
+      "total": 14,
+      "passed": 7,
+      "failed": 7
+    }
+  },
+  "testResults": "76/76 pass",
+  "note": "",
+  "gaps": []
+}
