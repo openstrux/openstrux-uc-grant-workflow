@@ -10,7 +10,7 @@
 
 ## Naming conventions
 
-- Types: PascalCase, match `specs/domain-model.md` entity names exactly.
+- Types: PascalCase, match `openspec/specs/domain-model.md` entity names exactly.
 - DB tables: snake_case, match entity names (e.g., `applicant_identity`, `proposal_version`).
 - Service functions: camelCase verbs (e.g., `submitProposal`, `evaluateEligibility`).
 - Route files: Next.js App Router convention (`app/api/<resource>/route.ts`).

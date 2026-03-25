@@ -24,7 +24,7 @@ cd app/web && pnpm install && cd ../..
 
 ```
 docs/               Human-facing project documentation
-specs/              Structured source-of-truth (domain model, workflow states, policies)
+openspec/specs/     Structured source-of-truth (domain model, workflow states, policies)
 prompts/            Prompt assets
   shared/           LLM context: system prompt, constraints, task format
   direct/           Path-specific: generate TS directly
@@ -43,7 +43,7 @@ scripts/            Automation: save-result, reset, view-results
 output/             Generated artifacts for comparison
   direct/           From direct-TS path (gitignored after generation)
   openstrux/        From .strux path (gitignored after generation)
-results/            Benchmark run outputs (JSON + zips)
+benchmarks/results/ Benchmark run outputs (JSON + zips)
 pipelines/          .strux source files for P0-P2
 ```
 
@@ -52,10 +52,10 @@ pipelines/          .strux source files for P0-P2
 See [docs/overview.md](docs/overview.md) for a full walkthrough.
 
 ### Direct path
-Feed `specs/` + `prompts/shared/` + `prompts/direct/` to an LLM → generates TypeScript directly.
+Feed `openspec/specs/` + `prompts/shared/` + `prompts/direct/` to an LLM → generates TypeScript directly.
 
 ### Openstrux path
-Feed `specs/` + `prompts/shared/` + `prompts/openstrux/` to an LLM → generates `.strux` panels → `strux build` → TypeScript.
+Feed `openspec/specs/` + `prompts/shared/` + `prompts/openstrux/` to an LLM → generates `.strux` panels → `strux build` → TypeScript.
 
 ## Scripts
 

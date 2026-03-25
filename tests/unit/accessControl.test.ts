@@ -1,7 +1,7 @@
 /**
  * Contract tests for access control enforcement.
  *
- * Tests checkAccess against the four policies in specs/access-policies.md:
+ * Tests checkAccess against the four policies in openspec/specs/access-policies.md:
  *   1. admin-all
  *   2. deny-identity-to-reviewer (hard deny)
  *   3. reviewer-blinded-assigned

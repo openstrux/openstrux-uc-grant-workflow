@@ -2,7 +2,7 @@
  * Contract tests for domain Zod schemas.
  *
  * Validates that the shared schemas in packages/domain accept and reject
- * data according to specs/domain-model.md. These are the types both
+ * data according to openspec/specs/domain-model.md. These are the types both
  * front-end and back-end depend on.
  */
 

@@ -5,7 +5,7 @@
 
 ## Decision
 
-Single starter repository with strict separation between: specification (`specs/`), prompts (`prompts/`), frontend (`app/web/`), generated output (`output/`), and benchmark results (`results/`).
+Single starter repository with strict separation between: specification (`openspec/specs/`), prompts (`prompts/`), frontend (`app/web/`), generated output (`output/`), and benchmark results (`benchmarks/results/`).
 
 ## Rationale
 

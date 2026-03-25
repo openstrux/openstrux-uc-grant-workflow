@@ -1,5 +1,0 @@
-Prisma schema loaded from prisma/schema.prisma
-Datasource "db": PostgreSQL database "grant_bench_20260324-104234", schema "public" at "127.0.0.1:5432"
-
-🚀  Your database is now in sync with your Prisma schema. Done in 149ms
-

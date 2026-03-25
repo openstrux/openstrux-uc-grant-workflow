@@ -4,7 +4,7 @@ Summary of technical requirements relevant to this starter repository. The autho
 
 ## Stack (§8.1)
 
-- TypeScript, Next.js 15, Prisma 6, PostgreSQL 15
+- TypeScript, Next.js 16, Prisma 6, PostgreSQL 15
 
 ## Repository strategy (§8.6)
 

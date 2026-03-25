@@ -77,7 +77,7 @@ export function createBlindedPacket(
 // ---------------------------------------------------------------------------
 
 /**
- * Check whether a status transition is valid per specs/workflow-states.md.
+ * Check whether a status transition is valid per openspec/specs/workflow-states.md.
  */
 export function isValidTransition(_from: string, _to: string): boolean {
   throw new Error("Not implemented — replace via backend generation");
@@ -110,7 +110,7 @@ export type ResourceType =
   | "AuditEvent";
 
 /**
- * Enforce access policies from specs/access-policies.md.
+ * Enforce access policies from openspec/specs/access-policies.md.
  *
  * Rules (in priority order):
  *   1. admin-all: admin may perform any action on any resource.

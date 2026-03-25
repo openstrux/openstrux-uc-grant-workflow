@@ -1,10 +1,10 @@
 # System Prompt — Grant Workflow Backend Generation
 
-You are implementing the backend of a privacy-first grant review system. The system is based on the requirements in `specs/domain-model.md`, `specs/workflow-states.md`, and `specs/access-policies.md`.
+You are implementing the backend of a privacy-first grant review system. The system is based on the requirements in `openspec/specs/domain-model.md`, `openspec/specs/workflow-states.md`, and `openspec/specs/access-policies.md`.
 
 ## Stack
 - TypeScript (strict mode)
-- Next.js 15 (App Router, route handlers)
+- Next.js 16 (App Router, route handlers)
 - Prisma 6 (PostgreSQL 18)
 - Zod 3 (input validation)
 - JWT-based role middleware (no external IdP required for P0-P2)
@@ -20,16 +20,16 @@ You are implementing the backend of a privacy-first grant review system. The sys
 ## What already exists
 
 The repository ships with:
-- `app/web/` — Next.js frontend (pages, forms, navigation) calling predefined service interfaces
-- `tests/unit/` and `tests/integration/` — vitest tests as acceptance criteria
+- `src/app/` — Next.js frontend (pages, forms, navigation) calling predefined service interfaces
+- `tests/unit/`, `tests/integration/`, `tests/integration-mock/`, and `tests/e2e/` — vitest tests as acceptance criteria
 - Contract stubs with typed signatures that you must implement:
   - `src/domain/schemas/index.ts` — Zod schemas (entity + API request/response)
   - `src/policies/index.ts` — barrel exporting pure functions (`evaluateEligibility`, `createBlindedPacket`, `isValidTransition`, `getNextStatus`)
   - `src/server/services/submissionService.ts` — `submitProposal`, `listSubmissions`, `getSubmission`
   - `src/server/services/eligibilityService.ts` — `runEligibilityCheck`
   - `src/lib/dal.ts` — `verifySession(req)` → `Principal | null`
-  - `src/app/api/intake/route.ts` and `eligibility/route.ts` — route stubs
-- `prisma/` — Prisma schema location (co-located with `@prisma/client` declared in `app/web/package.json`; schema must be implemented at `prisma/schema.prisma`)
+  - `src/app/api/intake/route.ts` and `src/app/api/eligibility/route.ts` — route stubs
+- `prisma/` — Prisma schema location (`prisma/schema.prisma`)
 
 Tests import only from these contract surfaces. Internal file structure within packages is free.
 

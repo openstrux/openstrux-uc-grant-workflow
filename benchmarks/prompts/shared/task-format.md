@@ -23,8 +23,8 @@ model Submission { ... }
 ## Verification
 
 After completing all files, confirm:
-- [ ] All entities from `specs/domain-model.md` are implemented
-- [ ] Access policies from `specs/access-policies.md` are enforced
+- [ ] All entities from `openspec/specs/domain-model.md` are implemented
+- [ ] Access policies from `openspec/specs/access-policies.md` are enforced
 - [ ] `tsc --noEmit` would pass (no type errors)
 - [ ] All referenced service interfaces from `` are satisfied
 

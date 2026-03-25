@@ -1,7 +1,7 @@
 /**
  * Contract tests for workflow state transitions.
  *
- * Tests that state transitions follow specs/workflow-states.md and
+ * Tests that state transitions follow openspec/specs/workflow-states.md and
  * that invalid transitions are rejected.
  *
  * Imports from @grant-workflow/policies barrel.

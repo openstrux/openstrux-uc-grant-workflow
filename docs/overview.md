@@ -24,10 +24,10 @@ The **baseline** is the initial state of the repository: pre-built frontend, pre
 
 Two generation paths execute against this baseline:
 
-1. **Direct** — feed `specs/` + `prompts/shared/` + `prompts/direct/` to an LLM → TypeScript output without Openstrux
-2. **Openstrux** — feed `specs/` + `prompts/shared/` + `prompts/openstrux/` to an LLM → `.strux` panels → `strux build` → TypeScript output
+1. **Direct** — feed `openspec/specs/` + `prompts/shared/` + `prompts/direct/` to an LLM → TypeScript output without Openstrux
+2. **Openstrux** — feed `openspec/specs/` + `prompts/shared/` + `prompts/openstrux/` to an LLM → `.strux` panels → `strux build` → TypeScript output
 
-Both paths use the same functional specifications from `specs/` and are validated against the same pre-written tests.
+Both paths use the same functional specifications from `openspec/specs/` and are validated against the same pre-written tests.
 
 ## Prerequisites
 

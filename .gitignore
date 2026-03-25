@@ -17,4 +17,4 @@ output/
 strux.context
 pipelines/**/*.strux
 pipelines/strux.context
-specs/*.strux
+openspec/specs/*.strux
