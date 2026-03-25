@@ -4,8 +4,6 @@
  * Both front-end and back-end import from here.
  * Field names use camelCase (TypeScript convention).
  * All types are derived via z.infer<> — never duplicated manually.
- *
- * @generated-stub — replace with real implementation via backend generation
  */
 
 import { z } from "zod";
@@ -84,11 +82,11 @@ export const IntakeRequestSchema = z.object({
   requestedBudgetKEur: z.number().positive(),
   budgetUsage: z.string().min(1),
   tasksBreakdown: z.string().min(1),
-  // Applicant identity (stored separately in ApplicantIdentity — restricted access)
-  legalName: z.string().min(1),
-  email: z.string().email(),
-  country: z.string().min(1),
-  organisation: z.string().min(1),
+  // Applicant identity (stored separately — optional, restricted access)
+  legalName: z.string().min(1).optional(),
+  email: z.string().email().optional(),
+  country: z.string().min(1).optional(),
+  organisation: z.string().min(1).optional(),
 });
 
 /** POST /api/intake — 201 response */
