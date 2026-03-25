@@ -6,7 +6,7 @@
     "openspec/specs/access-policies.md",
     "openspec/specs/mvp-profile.md"
   ],
-  "tasks": "openspec/changes/backend-generation/tasks.md",
+  "tasks": "openspec/changes/backend/tasks.md",
   "testUnit": "pnpm test:unit",
   "testIntegration": "pnpm test:integration",
   "maxRetries": 5
