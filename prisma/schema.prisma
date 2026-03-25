@@ -1,0 +1,123 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String   @id
+  displayName  String
+  role         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("user")
+}
+
+model Call {
+  id                       String       @id
+  title                    String
+  description              String
+  openDate                 DateTime?
+  closeDate                DateTime?
+  status                   String       @default("open")
+  maxBudgetKEur            Int          @default(500)
+  enabledEligibilityChecks String[]
+  reviewerPolicyVersion    String?
+  createdAt                DateTime     @default(now())
+  updatedAt                DateTime     @updatedAt
+  submissions              Submission[]
+
+  @@map("call")
+}
+
+model Submission {
+  id                String             @id @default(cuid())
+  callId            String
+  call              Call               @relation(fields: [callId], references: [id])
+  applicantAlias    String
+  status            String             @default("submitted")
+  submittedAt       DateTime           @default(now())
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  proposalVersions  ProposalVersion[]
+  applicantIdentity ApplicantIdentity?
+  eligibilityRecord EligibilityRecord?
+
+  @@map("submission")
+}
+
+model ProposalVersion {
+  id                  String         @id @default(cuid())
+  submissionId        String
+  submission          Submission     @relation(fields: [submissionId], references: [id])
+  versionNumber       Int            @default(1)
+  isEffective         Boolean        @default(true)
+  title               String
+  abstract            String
+  requestedBudgetKEur Float
+  budgetUsage         String
+  tasksBreakdown      String
+  attachmentsMeta     Json?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  blindedPacket       BlindedPacket?
+
+  @@map("proposal_version")
+}
+
+model ApplicantIdentity {
+  id           String     @id @default(cuid())
+  submissionId String     @unique
+  submission   Submission @relation(fields: [submissionId], references: [id])
+  legalName    String
+  email        String
+  country      String
+  organisation String
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@map("applicant_identity")
+}
+
+model BlindedPacket {
+  id                String          @id @default(cuid())
+  proposalVersionId String          @unique
+  proposalVersion   ProposalVersion @relation(fields: [proposalVersionId], references: [id])
+  content           Json
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@map("blinded_packet")
+}
+
+model EligibilityRecord {
+  id             String     @id @default(cuid())
+  submissionId   String     @unique
+  submission     Submission @relation(fields: [submissionId], references: [id])
+  status         String
+  inputs         Json
+  activeRules    String[]
+  failureReasons String[]
+  evaluatedAt    DateTime   @default(now())
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@map("eligibility_record")
+}
+
+model AuditEvent {
+  id         String   @id @default(cuid())
+  eventType  String
+  actorId    String
+  targetType String
+  targetId   String
+  payload    Json     @default("{}")
+  timestamp  DateTime @default(now())
+
+  @@map("audit_event")
+}

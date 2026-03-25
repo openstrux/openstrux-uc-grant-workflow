@@ -45,6 +45,8 @@
   "exclude": [
     "node_modules",
     "output",
-    ".openstrux"
+    ".openstrux",
+    "tests",
+    "vitest.config.ts"
   ]
 }
