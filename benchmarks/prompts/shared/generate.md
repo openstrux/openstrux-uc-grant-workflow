@@ -10,6 +10,19 @@ You are applying the `backend` change. Read these files before generating any co
 
 The integration tests (`tests/integration/`) clean up test data by calling `prisma.submission.deleteMany(...)`. For this to succeed, all Prisma child models that reference `Submission` must use `onDelete: Cascade` in `prisma/schema.prisma`. Missing cascades cause a foreign key violation in `afterAll` even when all tests pass, producing a false exit code 1.
 
+## TypeScript constraints
+
+**`tsc --noEmit` scope:** run it at the project root. The `tests/` directory may have pre-existing type errors that are intentionally excluded from `tsconfig.json`. Do not modify test files to fix type errors — only fix type errors in generated source files.
+
+**Prisma `Json` fields:** when writing an object to a Prisma `Json` column (e.g. `payload`, `content`, `inputs`), cast the value as `as unknown as Prisma.InputJsonValue`. Do not use `any`. Example:
+
+```typescript
+import type { Prisma } from "@prisma/client";
+await prisma.auditEvent.create({
+  data: { payload: { foo: "bar" } as unknown as Prisma.InputJsonValue },
+});
+```
+
 ## Specifications (source of truth)
 
 Read these files — they define what to build:
