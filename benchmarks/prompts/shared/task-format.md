@@ -14,11 +14,21 @@ Files to create/modify:
 
 ## File contents
 
-For each file, use a fenced code block with the file path as a comment on the first line:
+For each file, use a fenced code block where **the first line inside the block is a comment containing the relative file path**. The path comment must be the very first line — no blank lines before it.
+
+TypeScript / JavaScript files:
 ```typescript
+// src/lib/dal.ts
+export function verifySession() { ... }
+```
+
+Prisma schema:
+```prisma
 // prisma/schema.prisma
 model Submission { ... }
 ```
+
+Do NOT put the file path as a markdown header outside the block (e.g. `**\`src/lib/dal.ts\`**`). The path must be inside the block as the first line comment, exactly as shown above. This is required for automated extraction.
 
 ## Verification
 
