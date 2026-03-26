@@ -1,6 +1,8 @@
 # Openstrux Path
 
-Generate the backend using the Openstrux language: write `.strux` source files, compile to TypeScript via `strux build`, then fill any gaps the toolchain doesn't cover.
+Generate the backend using the Openstrux language: write `.strux` source files that define the domain model and data flows, compile to TypeScript via `strux build`, then fill any gaps the toolchain doesn't cover with hand-written TypeScript.
+
+**You MUST write `.strux` files first.** This is the openstrux benchmark path — skipping straight to TypeScript defeats the purpose. The `.strux` files are a first-class deliverable.
 
 ## How to use
 
@@ -11,42 +13,51 @@ Include in this order:
 4. **this file**
 5. `prompts/shared/task-format.md`
 
-## Step 1 — Bootstrap
+## Step 1 — Learn the language
+
+The Openstrux language reference is bundled locally in `openstrux-lang/`. Read in this order:
+
+1. **`openstrux-lang/syntax-reference.md`** — compact, self-sufficient reference. Covers type forms, panel structure, shorthand rules, rod taxonomy, expressions, decorators, context inheritance. **Read this first — it is included in the prompt.**
+2. **`openstrux-lang/examples/`** — concrete `.strux` files that parse and typecheck cleanly. Study these before writing your own:
+   - `p0-domain-model.strux` — types + panel for a grant-workflow domain (closest to your task)
+   - `v003-panel-shorthand.strux` — shorthand syntax (no `@rod`, no `cfg./arg.` prefix)
+   - `v020-validate-schema-ref.strux` — validate rod with SchemaRef to a declared `@type`
+   - `v020-write-data-target.strux` — write-data with DataTarget
+   - `v010-context-named-source.strux` — named `@source` resolution from context
+3. **Deep specs** — load only when syntax-reference and examples are insufficient:
+   - `openstrux-lang/grammar.md` — full EBNF
+   - `openstrux-lang/type-system.md` — union/record/enum, type paths, narrowing
+   - `openstrux-lang/panel-shorthand.md` — shorthand derivation rules
+   - `openstrux-lang/config-inheritance.md` — context cascade semantics
+   - `openstrux-lang/semantics.md` — evaluation model
+   - `openstrux-lang/access-context.strux` — AccessContext type definitions
+
+## Step 2 — Bootstrap
 
 Verify the toolchain is available and the project config is correct:
 
 ```bash
-cd ../openstrux-core && pnpm build         # build toolchain
-cd -
-npx strux init                             # bootstrap strux.config.yaml if missing
+npx strux --version                        # should print a version
+cat strux.config.yaml                      # verify source globs and output dir
 ```
 
-Check `strux.config.yaml` — verify target versions match the stack (Next.js 15, Prisma 6, Zod 3, TypeScript 5). The config defines source globs (`pipelines/**/*.strux`, `specs/**/*.strux`) and output dir (`.openstrux/build`).
+Check `strux.config.yaml` — verify source globs include `pipelines/**/*.strux` and `openspec/specs/**/*.strux`, and output dir is `.openstrux/build`.
 
-## Step 2 — Learn the language
-
-Read `../openstrux-spec/specs/core/syntax-reference.md` — it is self-sufficient for generation. It covers: type forms, panel structure, shorthand rules, rod taxonomy, expressions, decorators, context inheritance.
-
-Load deeper specs only when the syntax reference is insufficient:
-- `../openstrux-spec/specs/core/grammar.md` — full EBNF
-- `../openstrux-spec/specs/core/semantics.md` — evaluation model
-- `../openstrux-spec/specs/core/type-system.md` — type narrowing
-- `../openstrux-spec/specs/core/config-inheritance.md` — context cascade
-- `../openstrux-spec/specs/core/panel-shorthand.md` — shorthand rules
+If `npx strux` is not available, you can still write `.strux` files — the benchmark runner will attempt to compile them during apply. Focus on producing correct `.strux` source and gap-filling the TypeScript stubs.
 
 ## Step 3 — Write `.strux` source files
 
-Read the functional specs (`specs/domain-model.md`, `specs/workflow-states.md`, `specs/access-policies.md`, `specs/mvp-profile.md`) and express them as `.strux`:
+Read the functional specs (`openspec/specs/domain-model.md`, `openspec/specs/workflow-states.md`, `openspec/specs/access-policies.md`, `openspec/specs/mvp-profile.md`) and express them as `.strux`:
 
-- **`strux.context`** (project root) — project-wide `@context`: controller, DPO, common policies, named `@source`/`@target` for infrastructure (PostgreSQL, Keycloak)
+- **`strux.context`** (project root) — project-wide `@context`: controller, DPO, common policies, named `@source`/`@target` for PostgreSQL
 - **`pipelines/strux.context`** — domain-level overrides: narrower access scope, domain-specific sources/targets
-- **`specs/p0-domain-model.strux`** — `@type` definitions for all P0-P2 entities from `specs/domain-model.md`
+- **`openspec/specs/p0-domain-model.strux`** — `@type` definitions for all P0-P2 entities from `openspec/specs/domain-model.md`
 - **`pipelines/intake/p1-intake.strux`** — intake pipeline panel (receive → validate → write, with identity separation and blinded packet generation)
 - **`pipelines/eligibility/p2-eligibility.strux`** — eligibility pipeline panel (guard → evaluate → write, with status transition and audit)
 
 Use shorthand syntax. Leverage context cascade: panels should declare only the delta from context. Prefer named references (`@source`, `@target`) over inline config.
 
-## Step 4 — Build
+## Step 4 — Build (if toolchain available)
 
 ```bash
 npx strux build --explain
@@ -54,25 +65,39 @@ npx strux build --explain
 
 `--explain` shows what each panel compiles to. Verify zero error diagnostics. If errors occur, fix the `.strux` source and rebuild.
 
+If `strux build` is not available, skip to Step 5 — the `.strux` files you wrote are still valuable output.
+
 ## Step 5 — Fill gaps
 
-After `strux build`, check for and implement anything the generated output doesn't cover:
-- Route handler wiring (`src/app/api/*/route.ts` → import and call generated services)
-- Auth middleware (`src/server/auth/middleware.ts` → JWT extraction)
-- Complex business logic the panels couldn't express
+After writing `.strux` files (and optionally running `strux build`), implement all remaining TypeScript stubs that the `.strux` source doesn't cover:
 
-Write manual gap-fills to `output/openstrux/`. Generated files stay in `.openstrux/build/`.
+- **Prisma schema** (`prisma/schema.prisma`) — the `.strux` types inform but don't generate the Prisma schema
+- **Zod schemas** (`src/domain/schemas/index.ts`)
+- **Policy functions** (`src/policies/index.ts`) — `evaluateEligibility`, `createBlindedPacket`, `isValidTransition`, `getNextStatus`
+- **Service layer** (`src/server/services/submissionService.ts`, `eligibilityService.ts`)
+- **DAL** (`src/lib/dal.ts`) — `verifySession`
+- **Route handlers** (`src/app/api/intake/route.ts`, `src/app/api/eligibility/route.ts`)
+- **Prisma client** (`src/lib/prisma.ts`)
+- **Seed** (`prisma/seeds/seed.ts`)
+
+The `.strux` source defines the domain model and data flows; the TypeScript gap-fills implement the contract stubs that tests import from.
 
 ## Output
 
+Both `.strux` source files and TypeScript gap-fills are deliverables:
+
 ```
-.openstrux/build/          # generated by strux build (do not edit)
-output/openstrux/          # manually written gap-fills
+strux.context              # project-wide context
+pipelines/**/*.strux       # pipeline panels
+openspec/specs/*.strux     # type definitions
+src/**/*.ts                # gap-fill implementations
+prisma/schema.prisma       # database schema
+prisma/seeds/seed.ts       # seed script
 ```
 
 ## Gap log
 
-Log anything you couldn't express or couldn't find in the docs:
+Log anything you couldn't express in `.strux` or couldn't find in the language docs:
 ```
 ## Gaps
 - [GAP-001] <functional gap> — <workaround used>
