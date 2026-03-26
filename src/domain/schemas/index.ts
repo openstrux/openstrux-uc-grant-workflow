@@ -85,10 +85,10 @@ export const IntakeRequestSchema = z.object({
   budgetUsage: z.string().min(1),
   tasksBreakdown: z.string().min(1),
   // Applicant identity (stored separately in ApplicantIdentity — restricted access)
-  legalName: z.string().min(1),
-  email: z.string().email(),
-  country: z.string().min(1),
-  organisation: z.string().min(1),
+  legalName: z.string().min(1).optional(),
+  email: z.string().email().optional(),
+  country: z.string().min(1).optional(),
+  organisation: z.string().min(1).optional(),
 });
 
 /** POST /api/intake — 201 response */

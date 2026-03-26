@@ -11,7 +11,7 @@
 import type {
   EligibilityRequest,
   EligibilityResponse,
-} from "../../../../../packages/domain/src/schemas";
+} from "../../domain/schemas";
 
 /**
  * Run a full eligibility check: evaluate inputs against the call's active

@@ -7,7 +7,7 @@
  * @generated-stub — replace with real implementation via backend generation
  */
 
-import type { IntakeRequest, IntakeResponse } from "../../../../../packages/domain/src/schemas";
+import type { IntakeRequest, IntakeResponse } from "../../domain/schemas";
 
 // ---------------------------------------------------------------------------
 // Read operations (used by server components / admin pages)

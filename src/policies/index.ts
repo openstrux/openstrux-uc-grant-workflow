@@ -14,7 +14,7 @@
 import type {
   EligibilityInputs,
   ProposalVersion,
-} from "../../domain/src/schemas";
+} from "../domain/schemas";
 
 // ---------------------------------------------------------------------------
 // Eligibility evaluation (pure — no DB)
