@@ -17,11 +17,11 @@ const prisma = new PrismaClient({
 
 beforeAll(async () => {
   await prisma.$connect();
-  await prisma.submission.deleteMany({ where: { applicantAlias: { startsWith: "test-" } } });
+  await prisma.submission.deleteMany({ where: { applicantAlias: { startsWith: "test-intake-" } } });
 });
 
 afterAll(async () => {
-  await prisma.submission.deleteMany({ where: { applicantAlias: { startsWith: "test-" } } });
+  await prisma.submission.deleteMany({ where: { applicantAlias: { startsWith: "test-intake-" } } });
   await prisma.$disconnect();
 });
 
@@ -29,7 +29,7 @@ describe("Intake service (integration)", () => {
   it("creates a submission with a proposal version", async () => {
     const result = await submitProposal({
       callId: "eu-oss-fund-2026",
-      applicantAlias: "test-researcher-001",
+      applicantAlias: "test-intake-001",
       title: "Test Proposal",
       abstract: "A test abstract.",
       requestedBudgetKEur: 50,
@@ -42,14 +42,14 @@ describe("Intake service (integration)", () => {
 
     const stored = await prisma.submission.findUnique({ where: { id: result.submissionId } });
     expect(stored).toBeTruthy();
-    expect(stored?.applicantAlias).toBe("test-researcher-001");
+    expect(stored?.applicantAlias).toBe("test-intake-001");
     expect(stored?.status).toBe("submitted");
   });
 
   it("creates a blinded packet for the effective proposal version", async () => {
     const result = await submitProposal({
       callId: "eu-oss-fund-2026",
-      applicantAlias: "test-researcher-002",
+      applicantAlias: "test-intake-002",
       title: "Another Test Proposal",
       abstract: "Another test abstract.",
       requestedBudgetKEur: 75,
@@ -71,7 +71,7 @@ describe("Intake service (integration)", () => {
   it("generates an audit event on submission creation", async () => {
     const result = await submitProposal({
       callId: "eu-oss-fund-2026",
-      applicantAlias: "test-researcher-003",
+      applicantAlias: "test-intake-003",
       title: "Audit Test Proposal",
       abstract: "Audit test.",
       requestedBudgetKEur: 30,
