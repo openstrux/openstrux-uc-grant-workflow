@@ -108,6 +108,33 @@ export const EligibilityResponseSchema = z.object({
   failureReasons: z.array(z.string()),
 });
 
+/** POST /api/auth/login — request body */
+export const LoginRequestSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1),
+});
+
+/** POST /api/auth/register — request body */
+export const RegisterRequestSchema = z.object({
+  // Contact information
+  firstName: z.string().min(1),
+  lastName: z.string().min(1),
+  email: z.string().email(),
+  organisation: z.string().min(1),
+  country: z.string().min(1),
+  website: z.string().url().optional().or(z.literal("")),
+  // Project information
+  callId: z.string().min(1),
+  title: z.string().min(1),
+  abstract: z.string().min(1),
+  requestedBudgetKEur: z.number().positive(),
+  budgetUsage: z.string().min(1),
+  tasksBreakdown: z.string().min(1),
+  // Account creation
+  password: z.string().min(8),
+  privacyPolicy: z.literal(true),
+});
+
 // ---------------------------------------------------------------------------
 // Derived types (never define these manually — always use z.infer)
 // ---------------------------------------------------------------------------
@@ -120,3 +147,5 @@ export type IntakeRequest = z.infer<typeof IntakeRequestSchema>;
 export type IntakeResponse = z.infer<typeof IntakeResponseSchema>;
 export type EligibilityRequest = z.infer<typeof EligibilityRequestSchema>;
 export type EligibilityResponse = z.infer<typeof EligibilityResponseSchema>;
+export type LoginRequest = z.infer<typeof LoginRequestSchema>;
+export type RegisterRequest = z.infer<typeof RegisterRequestSchema>;

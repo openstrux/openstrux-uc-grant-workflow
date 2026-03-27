@@ -16,9 +16,22 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { verifySession } from "@/lib/dal";
+import { EligibilityRequestSchema } from "@/domain/schemas";
 
 export async function POST(req: NextRequest) {
-  void req;
+  const principal = await verifySession(req);
+  if (!principal) {
+    return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
+  }
+  if (principal.role !== "admin") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+  const body = await req.json().catch(() => null);
+  const parsed = EligibilityRequestSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
   return NextResponse.json(
     { error: "Backend not yet generated. Apply the backend-generation change first." },
     { status: 501 },

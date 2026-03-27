@@ -5,19 +5,27 @@
  * session verification, role enforcement, and schema validation.
  * No database required.
  *
- * Spec: app/web/src/app/api/eligibility/route.ts
+ * Spec: src/app/api/eligibility/route.ts
  *   Auth:   verifySession — role must be "admin"
  *   Body:   EligibilityRequestSchema
- *   Codes:  200 ok, 400 bad request, 401 unauthenticated, 403 forbidden
+ *   Codes:  501 (stub), 400 bad request, 401 unauthenticated, 403 forbidden
  */
 
-import { describe, it, expect } from "vitest";
-import { POST } from "../../src/app/api/eligibility/route";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 
-function makeReq(headers: Record<string, string>, body: unknown): Request {
+vi.mock("../../src/lib/dal", () => ({
+  verifySession: vi.fn(),
+}));
+
+import { POST } from "../../src/app/api/eligibility/route";
+import * as dal from "../../src/lib/dal";
+
+const mockVerify = dal.verifySession as ReturnType<typeof vi.fn>;
+
+function makeReq(body: unknown): Request {
   return new Request("http://localhost/api/eligibility", {
     method: "POST",
-    headers: { "content-type": "application/json", ...headers },
+    headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   });
 }
@@ -31,60 +39,63 @@ const VALID_INPUTS = {
   firstTimeApplicantInProgramme: true,
 };
 
-const VALID_BODY = {
-  submissionId: "sub-001",
-  inputs: VALID_INPUTS,
-};
+const VALID_BODY = { submissionId: "sub-001", inputs: VALID_INPUTS };
 
-const AUTH_ADMIN = { "x-role": "admin", "x-user-id": "admin-1" };
+beforeEach(() => {
+  mockVerify.mockReset();
+});
 
 describe("POST /api/eligibility — authentication", () => {
-  it("returns 401 when no auth headers", async () => {
-    const res = await POST(makeReq({}, VALID_BODY) as never);
-    expect(res.status).toBe(401);
-  });
-
-  it("returns 401 when X-User-Id header is missing", async () => {
-    const res = await POST(makeReq({ "x-role": "admin" }, VALID_BODY) as never);
+  it("returns 401 when no session", async () => {
+    mockVerify.mockResolvedValue(null);
+    const res = await POST(makeReq(VALID_BODY) as never);
     expect(res.status).toBe(401);
   });
 });
 
 describe("POST /api/eligibility — authorisation (admin only)", () => {
   it("returns 403 when caller is an applicant", async () => {
-    const res = await POST(makeReq({ "x-role": "applicant", "x-user-id": "a1" }, VALID_BODY) as never);
+    mockVerify.mockResolvedValue({ userId: "a1", role: "applicant" });
+    const res = await POST(makeReq(VALID_BODY) as never);
     expect(res.status).toBe(403);
   });
 
   it("returns 403 when caller is a reviewer", async () => {
-    const res = await POST(makeReq({ "x-role": "reviewer", "x-user-id": "r1" }, VALID_BODY) as never);
+    mockVerify.mockResolvedValue({ userId: "r1", role: "reviewer" });
+    const res = await POST(makeReq(VALID_BODY) as never);
     expect(res.status).toBe(403);
   });
 
   it("returns 403 when caller is a validator", async () => {
-    const res = await POST(makeReq({ "x-role": "validator", "x-user-id": "v1" }, VALID_BODY) as never);
+    mockVerify.mockResolvedValue({ userId: "v1", role: "validator" });
+    const res = await POST(makeReq(VALID_BODY) as never);
     expect(res.status).toBe(403);
   });
 
   it("returns 403 when caller is an auditor", async () => {
-    const res = await POST(makeReq({ "x-role": "auditor", "x-user-id": "aud1" }, VALID_BODY) as never);
+    mockVerify.mockResolvedValue({ userId: "aud1", role: "auditor" });
+    const res = await POST(makeReq(VALID_BODY) as never);
     expect(res.status).toBe(403);
   });
 });
 
 describe("POST /api/eligibility — input validation", () => {
+  beforeEach(() => {
+    mockVerify.mockResolvedValue({ userId: "admin-1", role: "admin" });
+  });
+
   it("returns 400 when submissionId is missing", async () => {
-    const res = await POST(makeReq(AUTH_ADMIN, { inputs: VALID_INPUTS }) as never);
+    const res = await POST(makeReq({ inputs: VALID_INPUTS }) as never);
     expect(res.status).toBe(400);
   });
 
   it("returns 400 when inputs object is missing", async () => {
-    const res = await POST(makeReq(AUTH_ADMIN, { submissionId: "sub-001" }) as never);
+    const res = await POST(makeReq({ submissionId: "sub-001" }) as never);
     expect(res.status).toBe(400);
   });
 
   it("returns 400 when meetsEuropeanDimension has an invalid value", async () => {
-    const res = await POST(makeReq(AUTH_ADMIN, {
+    const res = await POST(makeReq({
       submissionId: "sub-001",
       inputs: { ...VALID_INPUTS, meetsEuropeanDimension: "maybe" },
     }) as never);
@@ -92,7 +103,7 @@ describe("POST /api/eligibility — input validation", () => {
   });
 
   it("returns 400 when submittedInEnglish is not a boolean", async () => {
-    const res = await POST(makeReq(AUTH_ADMIN, {
+    const res = await POST(makeReq({
       submissionId: "sub-001",
       inputs: { ...VALID_INPUTS, submittedInEnglish: "yes" },
     }) as never);

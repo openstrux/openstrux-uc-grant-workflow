@@ -1,29 +1,18 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { ConditionalNav } from "@/components/layout/ConditionalNav";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Grant Workflow",
+  title: "Grant Workflow — EU Open Source Fund",
   description: "Privacy-first grant review workflow",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body>
-        <nav>
-          <Link href="/">Dashboard</Link>
-          <Link href="/submit">Submit</Link>
-          <Link href="/admin">Admin</Link>
-        </nav>
+        <ConditionalNav />
         {children}
-        <footer>
-          <p>Grant Workflow — Privacy-first review system</p>
-        </footer>
       </body>
     </html>
   );
