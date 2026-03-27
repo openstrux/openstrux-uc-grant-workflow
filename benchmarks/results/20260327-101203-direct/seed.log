@@ -1,0 +1,11 @@
+warn The configuration property `package.json#prisma` is deprecated and will be removed in Prisma 7. Please migrate to a Prisma config file (e.g., `prisma.config.ts`).
+For more information, see: https://pris.ly/prisma-config
+
+Running seed command `node --experimental-strip-types prisma/seeds/seed.ts` ...
+(node:75468) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/homofaber/proj/openstrux-uc-grant-workflow-bench-20260327-101203-direct/prisma/seeds/seed.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/homofaber/proj/openstrux-uc-grant-workflow-bench-20260327-101203-direct/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Seed complete.
+
+🌱  The seed command has been executed.
