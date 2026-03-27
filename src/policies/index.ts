@@ -1,20 +1,6 @@
-/**
- * @grant-workflow/policies — public contract.
- *
- * Exports pure business-logic functions that route handlers, services,
- * and tests depend on. Internal file structure is free — the generated
- * backend may organise code however it likes as long as these exports
- * resolve with the correct signatures.
- *
- * All input/output types derive from @grant-workflow/domain schemas.
- *
- * @generated-stub — replace with real implementation via backend generation
- */
+// src/policies/index.ts
 
-import type {
-  EligibilityInputs,
-  ProposalVersion,
-} from "../domain/schemas";
+import type { EligibilityInputs, ProposalVersion } from "../domain/schemas";
 
 // ---------------------------------------------------------------------------
 // Eligibility evaluation (pure — no DB)
@@ -27,18 +13,51 @@ export interface EligibilityResult {
   activeRules: string[];
 }
 
+const BUDGET_LIMIT_K_EUR = 500;
+
 /**
  * Evaluate eligibility inputs against the active rule set.
- *
- * Rules are identified by camelCase name (e.g. "submittedInEnglish").
  * Only rules present in `activeRules` are checked.
  * Budget threshold defaults to 500 k EUR.
  */
 export function evaluateEligibility(
-  _inputs: EligibilityInputs,
-  _activeRules: string[],
+  inputs: EligibilityInputs,
+  activeRules: string[],
 ): EligibilityResult {
-  throw new Error("Not implemented — replace via backend generation");
+  const failureReasons: string[] = [];
+
+  if (activeRules.includes("submittedInEnglish") && !inputs.submittedInEnglish) {
+    failureReasons.push("submittedInEnglish");
+  }
+
+  if (activeRules.includes("alignedWithCall") && !inputs.alignedWithCall) {
+    failureReasons.push("alignedWithCall");
+  }
+
+  if (activeRules.includes("primaryObjectiveIsRd") && !inputs.primaryObjectiveIsRd) {
+    failureReasons.push("primaryObjectiveIsRd");
+  }
+
+  if (
+    activeRules.includes("meetsEuropeanDimension") &&
+    inputs.meetsEuropeanDimension === "false"
+  ) {
+    failureReasons.push("meetsEuropeanDimension");
+  }
+
+  if (
+    activeRules.includes("requestedBudgetKEur") &&
+    inputs.requestedBudgetKEur > BUDGET_LIMIT_K_EUR
+  ) {
+    failureReasons.push("requestedBudgetKEur");
+  }
+
+  return {
+    status: failureReasons.length === 0 ? "eligible" : "ineligible",
+    failureReasons,
+    inputs,
+    activeRules,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -60,36 +79,65 @@ export interface ApplicantIdentityData {
 }
 
 /**
- * Create a blinded (identity-stripped) packet from a proposal version and
- * applicant identity. The returned `content` must contain evaluable fields
- * (title, abstract, budget, etc.) and must NOT contain identity fields
- * (legalName, email, country, organisation, applicantAlias).
+ * Create a blinded (identity-stripped) packet from a proposal version.
+ * The returned `content` contains only evaluable fields — no identity data.
  */
 export function createBlindedPacket(
-  _proposalVersion: ProposalVersion,
+  proposalVersion: ProposalVersion,
   _applicantIdentity: ApplicantIdentityData,
 ): BlindedPacketData {
-  throw new Error("Not implemented — replace via backend generation");
+  const content: Record<string, unknown> = {
+    title: proposalVersion.title,
+    abstract: proposalVersion.abstract,
+    requestedBudgetKEur: proposalVersion.requestedBudgetKEur,
+    budgetUsage: proposalVersion.budgetUsage,
+    tasksBreakdown: proposalVersion.tasksBreakdown,
+    versionNumber: proposalVersion.versionNumber,
+  };
+
+  return {
+    proposalVersionId: proposalVersion.id,
+    content,
+  };
 }
 
 // ---------------------------------------------------------------------------
 // Workflow state transitions (pure — no DB)
 // ---------------------------------------------------------------------------
 
+const VALID_TRANSITIONS: Record<string, string[]> = {
+  draft: ["submitted"],
+  submitted: ["eligible", "eligibility_failed"],
+  eligible: ["under_review"],
+  under_review: ["clarification_requested", "validation_pending", "rejected"],
+  clarification_requested: ["revised"],
+  revised: ["validation_pending", "rejected"],
+  validation_pending: ["selected", "rejected"],
+  eligibility_failed: [],
+  selected: [],
+  rejected: [],
+};
+
 /**
  * Check whether a status transition is valid per openspec/specs/workflow-states.md.
  */
-export function isValidTransition(_from: string, _to: string): boolean {
-  throw new Error("Not implemented — replace via backend generation");
+export function isValidTransition(from: string, to: string): boolean {
+  const allowed = VALID_TRANSITIONS[from];
+  if (!allowed) return false;
+  return allowed.includes(to);
 }
 
 /**
  * Derive the next submission status from the current status and a domain event.
- *
- * Events: "eligibility_pass" → "eligible", "eligibility_fail" → "eligibility_failed".
  */
-export function getNextStatus(_currentStatus: string, _event: string): string {
-  throw new Error("Not implemented — replace via backend generation");
+export function getNextStatus(currentStatus: string, event: string): string {
+  if (currentStatus === "submitted") {
+    if (event === "eligibility_pass") return "eligible";
+    if (event === "eligibility_fail") return "eligibility_failed";
+  }
+  throw new Error(
+    `No transition defined for status="${currentStatus}" event="${event}"`,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -111,23 +159,47 @@ export type ResourceType =
 
 /**
  * Enforce access policies from openspec/specs/access-policies.md.
- *
- * Rules (in priority order):
- *   1. admin-all: admin may perform any action on any resource.
- *   2. deny-identity-to-reviewer: reviewer is ALWAYS denied ApplicantIdentity (hard deny).
- *   3. reviewer-blinded-assigned: reviewer may read BlindedPacket.
- *   4. applicant-own-proposals: applicant may read/write own Submission
- *      where context.ownerId === principal.userId (excludes BlindedPacket).
- *   5. auditor: read-only access to AuditEvent.
- *   6. Default: deny.
- *
- * @param context.ownerId — userId of the resource owner (required for applicant own-resource checks)
  */
 export function checkAccess(
-  _principal: AccessPrincipal,
-  _resource: ResourceType,
-  _action: "read" | "write" | "delete",
-  _context?: { ownerId?: string },
+  principal: AccessPrincipal,
+  resource: ResourceType,
+  action: "read" | "write" | "delete",
+  context?: { ownerId?: string },
 ): boolean {
-  throw new Error("Not implemented — replace via backend generation");
+  // Rule 1: admin-all
+  if (principal.role === "admin") {
+    return true;
+  }
+
+  // Rule 2: deny-identity-to-reviewer (hard deny)
+  if (principal.role === "reviewer" && resource === "ApplicantIdentity") {
+    return false;
+  }
+
+  // Rule 3: reviewer-blinded-assigned — reviewer may only read BlindedPacket
+  if (principal.role === "reviewer") {
+    if (resource === "BlindedPacket" && action === "read") return true;
+    return false;
+  }
+
+  // Rule 4: applicant-own-proposals
+  if (principal.role === "applicant") {
+    if (resource === "BlindedPacket") return false;
+    if (resource === "EligibilityRecord") return false;
+    if (resource === "Submission" || resource === "ProposalVersion") {
+      if (action === "delete") return false;
+      if (context?.ownerId === principal.userId) return true;
+      return false;
+    }
+    return false;
+  }
+
+  // Rule 5: auditor — read-only access to AuditEvent
+  if (principal.role === "auditor") {
+    if (resource === "AuditEvent" && action === "read") return true;
+    return false;
+  }
+
+  // Default: deny
+  return false;
 }

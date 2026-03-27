@@ -1,13 +1,9 @@
-/**
- * submissionService — service-layer contract for proposal intake.
- *
- * Called by route handlers and server components.
- * All types derive from @grant-workflow/domain schemas.
- *
- * @generated-stub — replace with real implementation via backend generation
- */
+// src/server/services/submissionService.ts
 
+import type { Prisma } from "@prisma/client";
 import type { IntakeRequest, IntakeResponse } from "../../domain/schemas";
+import { prisma } from "../../lib/prisma";
+import { createBlindedPacket } from "../../policies";
 
 // ---------------------------------------------------------------------------
 // Read operations (used by server components / admin pages)
@@ -31,14 +27,45 @@ export interface SubmissionDetail extends SubmissionSummary {
 }
 
 export async function listSubmissions(): Promise<SubmissionSummary[]> {
-  // TODO: implement in backend generation phase
-  return [];
+  const rows = await prisma.submission.findMany({
+    orderBy: { createdAt: "desc" },
+  });
+  return rows.map((r) => ({
+    id: r.id,
+    applicantAlias: r.applicantAlias,
+    status: r.status,
+    submittedAt: r.submittedAt ?? r.createdAt,
+  }));
 }
 
 export async function getSubmission(id: string): Promise<SubmissionDetail | null> {
-  // TODO: implement in backend generation phase
-  void id;
-  return null;
+  const row = await prisma.submission.findUnique({
+    where: { id },
+    include: {
+      proposalVersions: {
+        where: { isEffective: true },
+        take: 1,
+      },
+    },
+  });
+  if (!row) return null;
+
+  const effective = row.proposalVersions[0] ?? null;
+  return {
+    id: row.id,
+    applicantAlias: row.applicantAlias,
+    status: row.status,
+    submittedAt: row.submittedAt ?? row.createdAt,
+    effectiveVersion: effective
+      ? {
+          title: effective.title,
+          abstract: effective.abstract,
+          requestedBudgetKEur: effective.requestedBudgetKEur,
+          budgetUsage: effective.budgetUsage,
+          tasksBreakdown: effective.tasksBreakdown,
+        }
+      : null,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -50,9 +77,89 @@ export interface IntakeResult extends IntakeResponse {
 }
 
 /**
- * Create a new submission with proposal version, applicant identity,
- * blinded packet, and audit event — all in a single transaction.
+ * Create a new submission with proposal version, applicant identity (if provided),
+ * blinded packet, and audit event.
  */
-export async function submitProposal(_input: IntakeRequest): Promise<IntakeResult> {
-  throw new Error("Not implemented — replace via backend generation");
+export async function submitProposal(input: IntakeRequest): Promise<IntakeResult> {
+  const submission = await prisma.submission.create({
+    data: {
+      callId: input.callId,
+      applicantAlias: input.applicantAlias,
+      status: "submitted",
+      submittedAt: new Date(),
+    },
+  });
+
+  const proposalVersion = await prisma.proposalVersion.create({
+    data: {
+      submissionId: submission.id,
+      versionNumber: 1,
+      isEffective: true,
+      title: input.title,
+      abstract: input.abstract,
+      requestedBudgetKEur: input.requestedBudgetKEur,
+      budgetUsage: input.budgetUsage,
+      tasksBreakdown: input.tasksBreakdown,
+    },
+  });
+
+  if (input.legalName && input.email && input.country && input.organisation) {
+    await prisma.applicantIdentity.create({
+      data: {
+        submissionId: submission.id,
+        legalName: input.legalName,
+        email: input.email,
+        country: input.country,
+        organisation: input.organisation,
+      },
+    });
+  }
+
+  const identityData = {
+    id: "",
+    submissionId: submission.id,
+    legalName: input.legalName ?? "",
+    email: input.email ?? "",
+    country: input.country ?? "",
+    organisation: input.organisation ?? "",
+  };
+
+  const pvForBlinding = {
+    id: proposalVersion.id,
+    submissionId: proposalVersion.submissionId,
+    versionNumber: 1,
+    isEffective: true,
+    title: input.title,
+    abstract: input.abstract,
+    requestedBudgetKEur: input.requestedBudgetKEur,
+    budgetUsage: input.budgetUsage,
+    tasksBreakdown: input.tasksBreakdown,
+  };
+
+  const packet = createBlindedPacket(pvForBlinding, identityData);
+
+  await prisma.blindedPacket.create({
+    data: {
+      proposalVersionId: packet.proposalVersionId,
+      content: packet.content as unknown as Prisma.InputJsonValue,
+    },
+  });
+
+  await prisma.auditEvent.create({
+    data: {
+      eventType: "submission.created",
+      actorId: input.applicantAlias,
+      targetType: "Submission",
+      targetId: submission.id,
+      payload: {
+        callId: input.callId,
+        applicantAlias: input.applicantAlias,
+      } as unknown as Prisma.InputJsonValue,
+    },
+  });
+
+  return {
+    submissionId: submission.id,
+    status: submission.status,
+  };
 }
