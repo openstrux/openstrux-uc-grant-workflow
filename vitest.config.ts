@@ -34,6 +34,12 @@ export default defineConfig({
           setupFiles: ["./tests/integration-mock/setup.ts"],
         },
       },
+      {
+        test: {
+          name: "e2e",
+          include: ["tests/e2e/**/*.test.ts"],
+        },
+      },
     ],
   },
 });

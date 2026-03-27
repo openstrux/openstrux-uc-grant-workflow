@@ -5,27 +5,42 @@
  * Tests the complete user journey: submit proposal → run eligibility → verify state.
  *
  * Requires: running PostgreSQL, app running at localhost:3000.
+ *
+ * Auth: intake requires applicant|admin; eligibility requires admin.
+ * This test logs in as admin (has both permissions) before running workflow tests.
  */
 
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 
 const BASE_URL = process.env.APP_URL ?? "http://localhost:3000";
 
 describe("intake → eligibility (e2e)", () => {
   let submissionId: string;
+  let adminCookie: string;
 
   beforeAll(async () => {
     // Health check
-    const health = await fetch(`${BASE_URL}/api/intake`, { method: "OPTIONS" }).catch(() => null);
+    const health = await fetch(`${BASE_URL}/api/benchmarks`).catch(() => null);
     if (!health) {
       throw new Error("App not running at " + BASE_URL);
     }
+
+    // Log in as admin — has permission for both /api/intake and /api/eligibility
+    const loginRes = await fetch(`${BASE_URL}/api/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "admin@example.com", password: "admin123" }),
+    });
+    if (loginRes.status !== 200) {
+      throw new Error("Admin login failed — check dev credentials");
+    }
+    adminCookie = loginRes.headers.get("set-cookie") ?? "";
   });
 
   it("submits a proposal via POST /api/intake", async () => {
     const res = await fetch(`${BASE_URL}/api/intake`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
       body: JSON.stringify({
         callId: "eu-oss-fund-2026",
         applicantAlias: "e2e-test-applicant",
@@ -46,7 +61,7 @@ describe("intake → eligibility (e2e)", () => {
   it("runs eligibility check with passing inputs", async () => {
     const res = await fetch(`${BASE_URL}/api/eligibility`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
       body: JSON.stringify({
         submissionId,
         inputs: {
@@ -70,7 +85,7 @@ describe("intake → eligibility (e2e)", () => {
     // Submit another proposal for the fail case
     const submitRes = await fetch(`${BASE_URL}/api/intake`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
       body: JSON.stringify({
         callId: "eu-oss-fund-2026",
         applicantAlias: "e2e-test-fail",
@@ -86,7 +101,7 @@ describe("intake → eligibility (e2e)", () => {
 
     const res = await fetch(`${BASE_URL}/api/eligibility`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Cookie: adminCookie },
       body: JSON.stringify({
         submissionId: failSubId,
         inputs: {

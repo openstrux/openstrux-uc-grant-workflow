@@ -27,7 +27,7 @@ The baseline contains typed stubs that define the contract between front-end and
 - `eligibilityService.ts` — `runEligibilityCheck`
 
 ### Auth (DAL)
-- `src/lib/dal.ts` — `verifySession(req)` → `Principal | null` (dev-mode `X-Role`/`X-User-Id` headers for P0-P2)
+- `src/lib/dal.ts` — `verifySession(req?)` → `Principal | null` — **already implemented** (frontend-overhaul): reads and decrypts the `session` JWT cookie via `src/lib/session.ts`. Do **not** revert to X-Role/X-User-Id header auth.
 - `src/lib/prisma.ts` — singleton `PrismaClient` instance (process-scoped, dev-safe)
 
 ### API routes (`src/app/api/`)

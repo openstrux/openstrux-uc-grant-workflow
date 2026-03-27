@@ -41,7 +41,7 @@ Tests import only from contract surfaces — internal file structure is free.
 
 ### Seed
 
-- [ ] SD.1 Write `prisma/seeds/seed.ts` — upsert one `User` per role and the default `Call`, using IDs, names, roles, and passwords from `openspec/specs/access-policies.md §Dev fixtures`. **Do NOT import bcrypt or any native module** — store a fixed placeholder string for `passwordHash` (e.g. `"$2b$10$dev-placeholder-not-used"`). In P0-P2, `verifySession` uses `X-Role`/`X-User-Id` headers; the `passwordHash` column is never read. Fully idempotent. Run via `pnpm db:seed`.
+- [ ] SD.1 Write `prisma/seeds/seed.ts` — upsert one `User` per role and the default `Call`, using IDs, names, roles, and passwords from `openspec/specs/access-policies.md §Dev fixtures`. **Do NOT import bcrypt or any native module** — store a fixed placeholder string for `passwordHash` (e.g. `"$2b$10$dev-placeholder-not-used"`). The login route uses hardcoded `DEV_USERS` (not the DB) and integration tests call service functions directly — `passwordHash` in the seed is never read at any point in this benchmark. Fully idempotent. Run via `pnpm db:seed`.
 
 ### Workflow transitions
 
@@ -49,8 +49,8 @@ Tests import only from contract surfaces — internal file structure is free.
 
 ### Auth (DAL)
 
-- [ ] AU.1 Implement `verifySession` in `src/lib/dal.ts` — extract principal from `X-Role`/`X-User-Id` headers (dev mode), return `Principal | null`
-- [ ] AU.2 Each route handler must call `verifySession` and return 401 (unauthenticated) or 403 (wrong role) before any business logic
+- [x] AU.1 ~~Implement `verifySession` in `src/lib/dal.ts` — extract principal from `X-Role`/`X-User-Id` headers (dev mode)~~ **Done (frontend-overhaul):** `verifySession` is already implemented in `src/lib/dal.ts` — it calls `getSession()` from `src/lib/session.ts` which reads and decrypts the `session` JWT cookie. Do **not** revert to X-Role headers.
+- [x] AU.2 **Done:** All route handlers (`intake`, `eligibility`, `proposals`, `proposals/[id]`, `proposals/[id]/assign`, `proposals/[id]/review`, `proposals/[id]/validate`, `audit`) already call `verifySession` and return 401/403 before any business logic. No action needed.
 
 ### Verification
 
