@@ -1,0 +1,120 @@
+// openspec/specs/p0-domain-model.strux — P0 domain entity type definitions
+
+// ---------------------------------------------------------------------------
+// Enumerations
+// ---------------------------------------------------------------------------
+
+@type ProposalStatus = enum {
+  draft
+  submitted
+  eligibility_failed
+  eligible
+  under_review
+  clarification_requested
+  revised
+  validation_pending
+  selected
+  rejected
+}
+
+@type Principal = enum {
+  applicant
+  admin
+  reviewer
+  validator
+  auditor
+}
+
+@type EligibilityStatus = enum {
+  eligible
+  ineligible
+  pending
+}
+
+// ---------------------------------------------------------------------------
+// Entity records
+// ---------------------------------------------------------------------------
+
+@type User {
+  id: string
+  displayName: string
+  role: Principal
+  passwordHash: string
+}
+
+@type Call {
+  id: string
+  title: string
+  description: string
+  openDate: Optional<date>
+  closeDate: Optional<date>
+  status: string
+  maxBudgetKEur: Optional<number>
+  enabledEligibilityChecks: Batch<string>
+  reviewerPolicyVersion: Optional<string>
+}
+
+@type Submission {
+  id: string
+  callId: string
+  applicantAlias: string
+  status: ProposalStatus
+  submittedAt: date
+}
+
+@type ProposalVersion {
+  id: string
+  submissionId: string
+  versionNumber: number
+  isEffective: bool
+  title: string
+  abstract: string
+  requestedBudgetKEur: number
+  budgetUsage: string
+  tasksBreakdown: string
+  attachmentsMeta: Optional<Map<string, string>>
+}
+
+@type ApplicantIdentity {
+  id: string
+  submissionId: string
+  legalName: string
+  email: string
+  country: string
+  organisation: string
+}
+
+@type BlindedPacket {
+  id: string
+  proposalVersionId: string
+  content: Map<string, string>
+}
+
+@type EligibilityInputs {
+  submittedInEnglish: bool
+  alignedWithCall: bool
+  primaryObjectiveIsRd: bool
+  meetsEuropeanDimension: string ["true", "false", "not_applicable"]
+  requestedBudgetKEur: number
+  firstTimeApplicantInProgramme: bool
+}
+
+@type EligibilityRecord {
+  id: string
+  submissionId: string
+  status: EligibilityStatus
+  inputs: EligibilityInputs
+  activeRules: Batch<string>
+  failureReasons: Batch<string>
+  evaluatedAt: date
+}
+
+@type AuditEvent {
+  id: string
+  eventType: string
+  actorId: string
+  targetType: string
+  targetId: string
+  payload: Map<string, string>
+  timestamp: date
+}

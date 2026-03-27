@@ -1,0 +1,62 @@
+// pipelines/intake/p1-intake.strux — P1 Intake pipeline
+// Receives a proposal submission, validates it, separates identity from content,
+// creates a blinded packet, and logs an audit event.
+
+@panel p1-intake {
+  @dp { record: "RPA-2026-P1-INTAKE" }
+  @access { purpose: "grant_intake", operation: "write" }
+
+  // Receive incoming HTTP request
+  recv = receive {
+    trigger: http { method: "POST", path: "/api/intake" }
+  }
+
+  // Validate session/auth (guard role)
+  auth = guard {
+    policy: principal.roles HAS ANY ("applicant", "admin")
+    from: recv.request
+  }
+
+  // Validate body against IntakeRequest schema
+  body_valid = validate {
+    schema: IntakeRequest
+    from: auth.allowed
+  }
+
+  // Write submission record
+  submission = write-data {
+    target: @production
+    from: body_valid.valid
+  }
+
+  // Write proposal version (content — no identity)
+  proposal_version = write-data {
+    target: @production
+    from: submission.receipt
+  }
+
+  // Pseudonymize — strip identity fields to create blinded packet
+  blinded = pseudonymize {
+    algo: "identity-strip"
+    fields: ["legalName", "email", "country", "organisation", "applicantAlias"]
+    from: proposal_version.receipt
+  }
+
+  // Write blinded packet
+  blinded_packet = write-data {
+    target: @production
+    from: blinded.masked
+  }
+
+  // Write audit event
+  audit = write-data {
+    target: @audit_log
+    from: submission.receipt
+  }
+
+  // Respond 201
+  resp = respond {
+    status: 201
+    from: submission.receipt
+  }
+}

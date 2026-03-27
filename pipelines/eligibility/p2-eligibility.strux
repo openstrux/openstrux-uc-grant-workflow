@@ -1,0 +1,62 @@
+// pipelines/eligibility/p2-eligibility.strux — P2 Eligibility pipeline
+// Evaluates a submission against the call's eligibility rules,
+// persists the result, transitions the status, and logs an audit event.
+
+@panel p2-eligibility {
+  @dp { record: "RPA-2026-P2-ELIGIBILITY" }
+  @access { purpose: "grant_eligibility_check", operation: "write" }
+
+  // Receive HTTP request
+  recv = receive {
+    trigger: http { method: "POST", path: "/api/eligibility" }
+  }
+
+  // Enforce admin-only access
+  auth = guard {
+    policy: principal.roles HAS "admin"
+    from: recv.request
+  }
+
+  // Validate EligibilityRequest schema
+  body_valid = validate {
+    schema: EligibilityRequest
+    from: auth.allowed
+  }
+
+  // Load call configuration to derive active rules
+  call_cfg = read-data {
+    source: @production
+    mode: "lookup"
+    from: body_valid.valid
+  }
+
+  // Evaluate eligibility rules (pure function — no I/O)
+  evaluated = transform {
+    mode: "map"
+    from: call_cfg
+  }
+
+  // Write eligibility record
+  elig_record = write-data {
+    target: @production
+    from: evaluated
+  }
+
+  // Update submission status
+  status_update = write-data {
+    target: @production
+    from: elig_record.receipt
+  }
+
+  // Write audit event
+  audit = write-data {
+    target: @audit_log
+    from: elig_record.receipt
+  }
+
+  // Respond 200
+  resp = respond {
+    status: 200
+    from: evaluated
+  }
+}

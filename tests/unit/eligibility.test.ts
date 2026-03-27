@@ -23,6 +23,7 @@ const ALL_RULES = [
   "primaryObjectiveIsRd",
   "meetsEuropeanDimension",
   "requestedBudgetKEur",
+  "firstTimeApplicantInProgramme",
 ];
 
 describe("evaluateEligibility", () => {
@@ -98,5 +99,20 @@ describe("evaluateEligibility", () => {
     const result = evaluateEligibility(VALID_INPUTS, ALL_RULES);
     expect(result.inputs).toEqual(VALID_INPUTS);
     expect(result.activeRules).toEqual(ALL_RULES);
+  });
+
+  it("returns ineligible when firstTimeApplicantInProgramme is false", () => {
+    const inputs = { ...VALID_INPUTS, firstTimeApplicantInProgramme: false };
+    const result = evaluateEligibility(inputs, ALL_RULES);
+    expect(result.status).toBe("ineligible");
+    expect(result.failureReasons).toContain("firstTimeApplicantInProgramme");
+  });
+
+  it("does not fail firstTimeApplicantInProgramme when not in active rules", () => {
+    const inputs = { ...VALID_INPUTS, firstTimeApplicantInProgramme: false };
+    const activeRules = ["submittedInEnglish", "alignedWithCall", "primaryObjectiveIsRd"];
+    const result = evaluateEligibility(inputs, activeRules);
+    expect(result.status).toBe("eligible");
+    expect(result.failureReasons).not.toContain("firstTimeApplicantInProgramme");
   });
 });

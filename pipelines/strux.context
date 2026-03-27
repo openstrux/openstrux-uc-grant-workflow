@@ -1,0 +1,18 @@
+// pipelines/strux.context — domain-level overrides
+@context {
+  @access {
+    intent: {
+      purpose: "grant_administration"
+      basis: "public_task"
+      operation: "read"
+    }
+    scope: policy("grant-pipeline-access")
+  }
+  @target audit_log = db.sql.postgres {
+    host: env("DB_HOST")
+    port: 5432
+    db_name: env("DB_NAME")
+    tls: true
+    credentials: secret_ref { provider: env, path: "DATABASE_URL" }
+  }
+}

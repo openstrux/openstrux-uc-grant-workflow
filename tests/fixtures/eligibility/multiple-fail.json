@@ -7,7 +7,7 @@
     "requestedBudgetKEur": 600,
     "firstTimeApplicantInProgramme": true
   },
-  "activeRules": ["submittedInEnglish", "alignedWithCall", "primaryObjectiveIsRd", "meetsEuropeanDimension", "requestedBudgetKEur"],
+  "activeRules": ["submittedInEnglish", "alignedWithCall", "primaryObjectiveIsRd", "meetsEuropeanDimension", "requestedBudgetKEur", "firstTimeApplicantInProgramme"],
   "expectedStatus": "ineligible",
   "expectedFailureReasons": ["submittedInEnglish", "alignedWithCall", "meetsEuropeanDimension", "requestedBudgetKEur"]
 }

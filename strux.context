@@ -1,0 +1,25 @@
+// strux.context — project-wide context for grant workflow backend
+@context {
+  @dp {
+    controller: "EU Open Source Fund Administration"
+    controller_id: "EU-OSS-FUND-2026"
+    dpo: "dpo@eu-oss-fund.example"
+    record: "RPA-2026-GRANT-WORKFLOW"
+  }
+  @access {
+    intent: {
+      purpose: "grant_administration"
+      basis: "public_task"
+      operation: "read"
+    }
+    scope: policy("grant-workflow-default")
+  }
+  @source production = db.sql.postgres {
+    host: env("DB_HOST")
+    port: 5432
+    db_name: env("DB_NAME")
+    tls: true
+    credentials: secret_ref { provider: env, path: "DATABASE_URL" }
+  }
+  @ops { retry: 3, timeout: "30s" }
+}
