@@ -4,6 +4,8 @@ Generate the backend using the Openstrux language: write `.strux` source files t
 
 **You MUST write `.strux` files first.** This is the openstrux benchmark path — skipping straight to TypeScript defeats the purpose. The `.strux` files are a first-class deliverable.
 
+Use `/opsx:explore backend` to discover all specs — the path-specific constraints (required `.strux` files, gap-fill list, thin-route rule, acceptance criteria) are in `openspec/changes/backend/specs/`, alongside the shared functional specs in `openspec/specs/` (domain model, workflow states, access policies, MVP profile).
+
 ## How to use
 
 Include in this order:
@@ -97,11 +99,11 @@ prisma/seeds/seed.ts       # seed script
 
 ## Gap log
 
-Log anything you couldn't express in `.strux` or couldn't find in the language docs:
+Log anything you couldn't express in `.strux` or couldn't find in the language docs (in addition to the standard gap log format from `shared/generate.md`):
 ```
 ## Gaps
-- [GAP-001] <functional gap> — <workaround used>
-- [DOC-001] <missing from language docs> — <where you looked>
+- [GAP-NNN] <functional gap> — <workaround used>
+- [DOC-NNN] <missing from language docs> — <where you looked>
 ```
 
 These gaps feed back into the Openstrux spec improvement cycle.

@@ -109,7 +109,7 @@ describe("Eligibility service (mock)", () => {
         primaryObjectiveIsRd: true,
         meetsEuropeanDimension: "not_applicable",
         requestedBudgetKEur: 50,
-        firstTimeApplicantInProgramme: false,
+        firstTimeApplicantInProgramme: true,
       },
     });
 

@@ -1,39 +1,16 @@
 # Technical Requirements
 
-Summary of technical requirements relevant to this starter repository. The authoritative source is `openstrux/docs/use-cases/grant-workflow/UseCaseRequirements.md` §8.
+The authoritative technical requirements are in `benchmarks/prompts/shared/system.md` (stack, principles, what exists) and `benchmarks/prompts/shared/constraints.md` (hard constraints, naming, code style).
 
-## Stack (§8.1)
+## Stack
 
-- TypeScript, Next.js 16, Prisma 6, PostgreSQL 15
+TypeScript (strict), Next.js 16, Prisma 6, PostgreSQL 18, Zod 3, JWT-based role middleware.
 
-## Repository strategy (§8.6)
+## Local development
 
-Single starter repo with clear separation: specs, prompts, generated output, benchmark assets, application code. Two execution paths against the same initialized target.
+```bash
+podman compose up   # start PostgreSQL 18
+pnpm dev            # start Next.js dev server
+```
 
-## Code organization (§8.9)
-
-- Business policies outside UI components
-- Eligibility, access, retention, workflow rules as isolated reusable modules
-- Traceability between specs/prompts and generated output
-- Generated artifacts separable from handwritten source
-
-## Configuration (§8.10)
-
-The system must support configuration for: active call, enabled eligibility checks, reviewer policy text version, CoI form version, retention durations, blinded packet field exclusions, feature flags by phase, benchmark run identifiers.
-
-## Testing (§8.11)
-
-- Unit tests for policy modules
-- Integration tests for DB + service interactions
-- E2e tests for main workflow slices
-- Fixture-based conformance tests for valid/invalid policy cases
-- Golden tests for blinded packet generation and workflow state transitions
-
-## Local development (§8.12)
-
-- Local dev: `podman compose up` for PostgreSQL, then `pnpm dev`
-- Secrets externalized from source control via `.env`
-
-## Comparison-readiness (§8.13)
-
-Both generation paths must preserve: prompts used, source specs used, generated files, validation results, token counts, execution time, repair/no-repair status, final scorecard entry.
+Secrets are externalized from source control via `.env`.

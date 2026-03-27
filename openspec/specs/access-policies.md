@@ -70,6 +70,6 @@ The seed must also create a default `Call` record:
   "description": "Funding for open source software projects with European dimension.",
   "status": "open",
   "maxBudgetKEur": 500,
-  "enabledEligibilityChecks": ["submittedInEnglish", "alignedWithCall", "primaryObjectiveIsRd", "meetsEuropeanDimension", "requestedBudgetKEur"]
+  "enabledEligibilityChecks": ["submittedInEnglish", "alignedWithCall", "primaryObjectiveIsRd", "meetsEuropeanDimension", "requestedBudgetKEur", "firstTimeApplicantInProgramme"]
 }
 ```

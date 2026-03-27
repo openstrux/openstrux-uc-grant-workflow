@@ -33,7 +33,7 @@ Both paths use the same functional specifications from `openspec/specs/` and are
 
 - Node.js >= 20
 - pnpm >= 9
-- PostgreSQL 15 (for integration tests)
+- PostgreSQL 18 (for integration tests)
 - openstrux-core built locally (`cd ../openstrux-core && pnpm build`) for the Openstrux path
 
 ## Initial state

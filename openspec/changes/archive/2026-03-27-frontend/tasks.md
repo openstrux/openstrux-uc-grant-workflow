@@ -97,7 +97,7 @@
 ## 16. Verification
 
 - [x] 16.1 Run `pnpm test:unit` — fix any regressions caused by auth header→session changes
-- [ ] 16.2 Smoke test: load `/` (both sections visible), navigate to `/submit` (form renders), complete submit flow (stub register → redirect to `/dashboard/applicant`)
-- [ ] 16.3 Smoke test: login as each of the 5 dev users and verify correct dashboard loads
-- [ ] 16.4 Smoke test: verify proxy blocks `/dashboard/admin` without session → redirects to `/login`
-- [ ] 16.5 Smoke test: load `/benchmarks` — empty state renders without error
+- [x] 16.2 Smoke test: load `/` (both sections visible), navigate to `/submit` (form renders), complete submit flow (stub register → redirect to `/dashboard/applicant`)
+- [x] 16.3 Smoke test: login as each of the 5 dev users and verify correct dashboard loads
+- [x] 16.4 Smoke test: verify proxy blocks `/dashboard/admin` without session → redirects to `/login`
+- [x] 16.5 Smoke test: load `/benchmarks` — empty state renders without error
