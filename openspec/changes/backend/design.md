@@ -1,36 +1,37 @@
-## Architecture
+## Context
 
-The backend is a contract-first design. Typed stubs define the contract surfaces; tests import only from these surfaces. Internal file structure within packages is free.
+The repository ships with a complete frontend (session auth, Tailwind UI, 5 dashboards), a typed contract-stub layer, and a full test suite. The tests import exclusively from the contract surfaces — internal implementation structure is unconstrained. The backend must be generated to make those tests pass.
 
-### Contract surfaces
+The spec is the source of truth for all generated code: read `openspec/specs/` before generating any file.
 
-```
-src/domain/schemas/index.ts    Zod schemas (entity + API request/response)
-                                Single source of truth — all types via z.infer<>
+## Goals / Non-Goals
 
-src/policies/index.ts          Barrel exporting pure business-logic functions:
-                                evaluateEligibility, createBlindedPacket,
-                                isValidTransition, getNextStatus
+**Goals:**
+- Implement all contract stubs so `tsc --noEmit`, unit, integration-mock, and integration tests all pass
+- Use `openspec/specs/mvp-profile.md` as the authoritative list of enabled eligibility checks (6 checks, including `firstTimeApplicantInProgramme`)
+- Update test baseline files to reflect the 6-check rule set before or alongside generation
 
-src/lib/dal.ts                  verifySession(req) → Principal | null
+**Non-Goals:**
+- Modifying the frontend, shared components, or auth layer (already implemented)
+- Running `prisma migrate dev` or `prisma db push` — the benchmark runner applies the schema
+- Adding P3–P6 route logic (stubs returning 501 are correct)
 
-src/server/services/
-  submissionService.ts          submitProposal, listSubmissions, getSubmission
-  eligibilityService.ts         runEligibilityCheck
+## Decisions
 
-src/app/api/
-  intake/route.ts               POST — validates with IntakeRequestSchema
-  eligibility/route.ts          POST — validates with EligibilityRequestSchema
+**Contract-first, stubs replaced in place.** All generated files are written at their natural in-tree paths. Existing `@generated-stub` files are replaced wholesale.
 
-prisma/schema.prisma            Database models matching domain model
-```
+**Single policy barrel.** `src/policies/index.ts` exports all pure functions. `packages/policies/src/index.ts` is a re-export barrel only — this satisfies both test import paths without duplication.
 
-### Internal structure (free)
+**`MVP_DEFAULT_RULES` must include all 6 checks.** `eligibilityService.ts` falls back to these defaults when the DB call lookup fails. The list must match `openspec/specs/mvp-profile.md §Enabled eligibility checks`, currently: `submittedInEnglish`, `alignedWithCall`, `primaryObjectiveIsRd`, `meetsEuropeanDimension`, `requestedBudgetKEur`, `firstTimeApplicantInProgramme`.
 
-The `src/policies/` barrel may delegate to internal modules. Internal organisation is free — only the barrel exports are tested.
+**Seed uses placeholder password hash.** The login route uses hardcoded `DEV_USERS` (not the DB). Do not import `bcrypt` in the seed — it's never called against the seeded hash.
 
-## Output location
+**Cascade deletes required.** Integration tests clean up via `prisma.submission.deleteMany()`. All child models (`ProposalVersion`, `ApplicantIdentity`, `BlindedPacket`, `EligibilityRecord`, `AuditEvent`) must use `onDelete: Cascade` on their `Submission` relation.
 
-Write all files at their natural in-tree paths (`prisma/schema.prisma`, `src/domain/schemas/index.ts`, etc.). Existing stubs are replaced in place.
+**Prisma `Json` fields need a cast.** Write `as unknown as Prisma.InputJsonValue` — not `as any` — for `payload`, `content`, and `inputs` columns.
 
-For the Openstrux path: `strux build` emits compiled output to `.openstrux/build/`. The `@openstrux/build` path alias in `tsconfig.json` resolves those files at compile time.
+## Risks / Trade-offs
+
+**`tsc --noEmit` scope.** The `tests/` directory has intentional type errors excluded from `tsconfig.json`. Run the check at the project root; do not modify test files to fix type errors in generated source.
+
+**DAL is already implemented.** `src/lib/dal.ts` reads the `session` JWT cookie via `src/lib/session.ts`. Do not revert to `X-Role`/`X-User-Id` header auth.

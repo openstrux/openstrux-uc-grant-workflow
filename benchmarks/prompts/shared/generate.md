@@ -1,57 +1,18 @@
 # Generate Backend — Common Instructions
 
-## Change to apply
-
-You are applying the `backend` change. Read these files before generating any code:
-- `openspec/changes/backend/design.md` — contract surfaces and output location
-- `openspec/changes/backend/tasks.md` — authoritative task checklist with contract surfaces table
-
-## Testing constraints
-
-The integration tests (`tests/integration/`) clean up test data by calling `prisma.submission.deleteMany(...)`. For this to succeed, all Prisma child models that reference `Submission` must use `onDelete: Cascade` in `prisma/schema.prisma`. Missing cascades cause a foreign key violation in `afterAll` even when all tests pass, producing a false exit code 1.
-
-## TypeScript constraints
-
-**`tsc --noEmit` scope:** run it at the project root. The `tests/` directory may have pre-existing type errors that are intentionally excluded from `tsconfig.json`. Do not modify test files to fix type errors — only fix type errors in generated source files.
-
-**Prisma `Json` fields:** when writing an object to a Prisma `Json` column (e.g. `payload`, `content`, `inputs`), cast the value as `as unknown as Prisma.InputJsonValue`. Do not use `any`. Example:
-
-```typescript
-import type { Prisma } from "@prisma/client";
-await prisma.auditEvent.create({
-  data: { payload: { foo: "bar" } as unknown as Prisma.InputJsonValue },
-});
-```
-
-## Specifications (source of truth)
-
-Read these files — they define what to build:
-- `openspec/specs/domain-model.md` — entities, fields, relationships
-- `openspec/specs/workflow-states.md` — state machine, access rules per state
-- `openspec/specs/access-policies.md` — principals, policies, enforcement points
-- `openspec/specs/mvp-profile.md` — active phases, enabled checks, default call config
-
 ## Workflow
 
 Use the OpenSpec workflow to implement and close this change:
 
-1. Run `/opsx:apply` — this reads `openspec/changes/backend/tasks.md` and drives implementation task by task. Follow the path-specific instructions below for how to approach code generation within each task.
-2. After all tasks pass verification, run `/opsx:archive` to mark the change complete.
+1. Run `/opsx:apply` — reads `openspec/changes/backend/tasks.md` and drives implementation task by task. Follow the path-specific instructions below for how to approach code generation within each task.
+2. After all verification tasks pass, run `/opsx:archive` to mark the change complete.
 
-The frontend and tests already exist — you are generating the backend they call. The baseline includes contract stubs (`@generated-stub`) with typed signatures; implement them. The contract surfaces table in `tasks.md` lists every stub that must be replaced.
-
-## Verification
-
-After completing all tasks, verify and report the result of each step explicitly:
-- `tsc --noEmit` exits 0 at the project root
-- All tests in `tests/unit/` pass
-- All tests in `tests/integration/` pass (requires `DATABASE_URL`)
-- All tests in `tests/integration-mock/` pass (no DB required: `pnpm test:integration:mock`)
+The design decisions, spec pointers, and technical constraints are in `openspec/changes/backend/design.md` — read it before generating any code.
 
 ## Gap log
 
-If any spec or requirement is ambiguous or missing, do not guess. Log the gap at the end of your output:
+If any spec or requirement is ambiguous or missing, do not guess. Log the gap at the end of your response:
 ```
 ## Gaps
-- [GAP-001] <what was missing or unclear> — <what you assumed or skipped>
+- [GAP-NNN] <what was missing or unclear> — <what you assumed or skipped>
 ```

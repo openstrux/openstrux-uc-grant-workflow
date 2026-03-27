@@ -1,60 +1,43 @@
-## Backend Generation Tasks
+## 0. Baseline corrections (GAP-001)
 
-This task list is executed by BOTH generation paths (direct and Openstrux) against the same baseline.
-Each path applies the same functional specification but differs in how code is generated.
+Apply before or alongside generation — these are pre-existing test/fixture files, not generated code.
 
-The baseline includes **contract stubs** with typed signatures that the generated code must implement.
-Tests import only from contract surfaces — internal file structure is free.
+- [ ] 0.1 `tests/unit/eligibility.test.ts` — add `"firstTimeApplicantInProgramme"` to `ALL_RULES`; add test: `"returns ineligible when firstTimeApplicantInProgramme is false"`; add test: `"does not fail firstTimeApplicantInProgramme when not in active rules"`
+- [ ] 0.2 `tests/integration-mock/eligibility.test.ts` — in the `"updates submission status to eligible on pass"` test, change `firstTimeApplicantInProgramme: false` → `true`
+- [ ] 0.3 `tests/fixtures/eligibility/all-pass.json` — add `"firstTimeApplicantInProgramme"` to `activeRules`
+- [ ] 0.4 `tests/fixtures/eligibility/language-fail.json` — add `"firstTimeApplicantInProgramme"` to `activeRules`
+- [ ] 0.5 `tests/fixtures/eligibility/multiple-fail.json` — add `"firstTimeApplicantInProgramme"` to `activeRules`
 
-> **Note (benchmark-runner-v2):** `tests/integration-mock/` contains a mock-based version of the integration tests using `vitest-mock-extended` — no database required. Run with `pnpm test:integration:mock`. `tests/integration/` remains the real-DB suite used by the benchmark runner.
+## 1. Domain model
 
-### Contract surfaces (stubs to implement)
+- [ ] 1.1 Write `prisma/schema.prisma` — models: `User`, `Call`, `Submission`, `ProposalVersion`, `ApplicantIdentity`, `BlindedPacket`, `EligibilityRecord`, `AuditEvent`; all child models use `onDelete: Cascade` on their `Submission` relation
+- [ ] 1.2 Write `src/lib/prisma.ts` — singleton `PrismaClient` instance (process-scoped, dev-safe)
+- [ ] 1.3 Implement `src/domain/schemas/index.ts` — replace stubs with real Zod schemas; `IntakeRequestSchema` identity fields (`legalName`, `email`, `country`, `organisation`) must be **optional**
 
-| Surface | Location | What it defines |
-|---|---|---|
-| Domain schemas | `src/domain/schemas/index.ts` | Zod schemas for entities + API request/response shapes |
-| Policy functions | `src/policies/index.ts` | Pure functions: `evaluateEligibility`, `createBlindedPacket`, `isValidTransition`, `getNextStatus` |
-| Submission service | `src/server/services/submissionService.ts` | `submitProposal`, `listSubmissions`, `getSubmission` |
-| Eligibility service | `src/server/services/eligibilityService.ts` | `runEligibilityCheck` |
-| DAL | `src/lib/dal.ts` | `verifySession(req)` → `Principal \| null` |
-| Route: intake | `src/app/api/intake/route.ts` | `POST` — validates with `IntakeRequestSchema`, returns `IntakeResponseSchema` |
-| Route: eligibility | `src/app/api/eligibility/route.ts` | `POST` — validates with `EligibilityRequestSchema`, returns `EligibilityResponseSchema` |
+## 2. Policy functions
 
-### P0 — Domain model
+- [ ] 2.1 Implement `evaluateEligibility` in `src/policies/index.ts` — pure function; evaluates inputs against `activeRules`; returns `{ status, failureReasons, inputs, activeRules }`; handles all 6 MVP checks including `firstTimeApplicantInProgramme`
+- [ ] 2.2 Implement `createBlindedPacket` — strip identity fields from proposal content; read `tests/unit/blindedPacket.test.ts` for exact field list
+- [ ] 2.3 Implement `isValidTransition` and `getNextStatus` — per `openspec/specs/workflow-states.md`
+- [ ] 2.4 Ensure `packages/policies/src/index.ts` re-exports everything from `src/policies/index.ts`
 
-- [ ] P0.1 Write `prisma/schema.prisma` — models: `User`, `Call`, `Submission`, `ProposalVersion`, `ApplicantIdentity`, `BlindedPacket`, `EligibilityRecord`, `AuditEvent`
-- [ ] P0.2 Do not run any Prisma commands — the benchmark runner applies the schema to the database after generation. Just ensure `prisma/schema.prisma` is complete and correct before finishing.
-- [ ] P0.3 Implement `src/domain/schemas/index.ts` — replace stubs with real Zod schemas. Note: `IntakeRequestSchema` identity fields (`legalName`, `email`, `country`, `organisation`) must be **optional** — the intake route accepts submissions without identity data (identity is stored separately when provided)
-- [ ] P0.4 Write `src/lib/prisma.ts` — singleton `PrismaClient` instance
+## 3. Services
 
-### P1 — Intake
+- [ ] 3.1 Implement `submitProposal` in `src/server/services/submissionService.ts` — create `Submission`, `ProposalVersion`, `BlindedPacket`, and `AuditEvent` atomically
+- [ ] 3.2 Implement `runEligibilityCheck` in `src/server/services/eligibilityService.ts` — persist `EligibilityRecord`, transition submission status, write audit event; derive `activeRules` from `Call.enabledEligibilityChecks`; fall back to `MVP_DEFAULT_RULES` (6 checks) if call not found
 
-- [ ] P1.1 Implement `submitProposal` in `src/server/services/submissionService.ts` — create Submission, ProposalVersion, BlindedPacket, and AuditEvent
-- [ ] P1.2 Implement `createBlindedPacket` exported from `src/policies` — strip identity fields from proposal content. Read `tests/unit/blindedPacket.test.ts` to confirm the exact fields that must be included and excluded
-- [ ] P1.3 Implement `src/app/api/intake/route.ts` — replace stub: call `verifySession`, return 401/403 before any business logic, validate body with `IntakeRequestSchema`, call `submitProposal`
+## 4. API routes
 
-### P2 — Eligibility
+- [ ] 4.1 Implement `src/app/api/intake/route.ts` — replace stub: `verifySession` → 401/403 → validate with `IntakeRequestSchema` → `submitProposal`
+- [ ] 4.2 Implement `src/app/api/eligibility/route.ts` — replace stub: `verifySession` → 401/403 → validate with `EligibilityRequestSchema` → `runEligibilityCheck`
 
-- [ ] P2.1 Implement `evaluateEligibility` exported from `src/policies` — pure function, evaluates inputs against an active rule set, returns `{ status, failureReasons, inputs, activeRules }`
-- [ ] P2.2 Implement `runEligibilityCheck` in `src/server/services/eligibilityService.ts` — persist `EligibilityRecord`, transition submission status, write audit event. Derive `activeRules` from the submission's `Call.enabledEligibilityChecks`; fall back to `mvp-profile.md` defaults if the call is not found
-- [ ] P2.3 Implement `src/app/api/eligibility/route.ts` — replace stub: call `verifySession`, return 401/403, validate body with `EligibilityRequestSchema`, call `runEligibilityCheck`
+## 5. Seed
 
-### Seed
+- [ ] 5.1 Write `prisma/seeds/seed.ts` — upsert one `User` per role and the default `Call` per `openspec/specs/access-policies.md §Dev fixtures`; `Call.enabledEligibilityChecks` must include all 6 MVP checks; use placeholder string for `passwordHash` (never import `bcrypt`); idempotent
 
-- [ ] SD.1 Write `prisma/seeds/seed.ts` — upsert one `User` per role and the default `Call`, using IDs, names, roles, and passwords from `openspec/specs/access-policies.md §Dev fixtures`. **Do NOT import bcrypt or any native module** — store a fixed placeholder string for `passwordHash` (e.g. `"$2b$10$dev-placeholder-not-used"`). The login route uses hardcoded `DEV_USERS` (not the DB) and integration tests call service functions directly — `passwordHash` in the seed is never read at any point in this benchmark. Fully idempotent. Run via `pnpm db:seed`.
+## 6. Verification
 
-### Workflow transitions
-
-- [ ] WT.1 Implement `isValidTransition` and `getNextStatus` exported from `src/policies` — per `openspec/specs/workflow-states.md`
-
-### Auth (DAL)
-
-- [x] AU.1 ~~Implement `verifySession` in `src/lib/dal.ts` — extract principal from `X-Role`/`X-User-Id` headers (dev mode)~~ **Done (frontend-overhaul):** `verifySession` is already implemented in `src/lib/dal.ts` — it calls `getSession()` from `src/lib/session.ts` which reads and decrypts the `session` JWT cookie. Do **not** revert to X-Role headers.
-- [x] AU.2 **Done:** All route handlers (`intake`, `eligibility`, `proposals`, `proposals/[id]`, `proposals/[id]/assign`, `proposals/[id]/review`, `proposals/[id]/validate`, `audit`) already call `verifySession` and return 401/403 before any business logic. No action needed.
-
-### Verification
-
-- [ ] V.1 `tsc --noEmit` exits 0 at the project root
-- [ ] V.2 All unit tests in `tests/unit/` pass
-- [ ] V.3 All tests in `tests/integration-mock/` pass (no DB required: `pnpm test:integration:mock`)
-- [ ] V.4 All integration tests in `tests/integration/` pass (requires `DATABASE_URL`)
+- [ ] 6.1 `tsc --noEmit` exits 0 at the project root
+- [ ] 6.2 All unit tests in `tests/unit/` pass (`pnpm test:unit`)
+- [ ] 6.3 All tests in `tests/integration-mock/` pass (`pnpm test:integration:mock`, no DB required)
+- [ ] 6.4 All integration tests in `tests/integration/` pass (`pnpm test:integration`, requires `DATABASE_URL`)
