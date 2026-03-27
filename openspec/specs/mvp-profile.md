@@ -38,6 +38,7 @@ All checks active for the demo call:
 - `primaryObjectiveIsRd`
 - `meetsEuropeanDimension`
 - `requestedBudgetKEur` (max: 500)
+- `firstTimeApplicantInProgramme`
 
 ## Default call configuration
 
@@ -46,6 +47,6 @@ All checks active for the demo call:
   "callId": "eu-oss-fund-2026",
   "title": "EU Open Source Fund 2026",
   "maxBudgetKEur": 500,
-  "enabledEligibilityChecks": ["submittedInEnglish", "alignedWithCall", "primaryObjectiveIsRd", "meetsEuropeanDimension", "requestedBudgetKEur"]
+  "enabledEligibilityChecks": ["submittedInEnglish", "alignedWithCall", "primaryObjectiveIsRd", "meetsEuropeanDimension", "requestedBudgetKEur", "firstTimeApplicantInProgramme"]
 }
 ```

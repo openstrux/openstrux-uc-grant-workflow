@@ -31,9 +31,14 @@ Read these files — they define what to build:
 - `openspec/specs/access-policies.md` — principals, policies, enforcement points
 - `openspec/specs/mvp-profile.md` — active phases, enabled checks, default call config
 
-## Tasks
+## Workflow
 
-Complete every task in `openspec/changes/backend/tasks.md`. The frontend and tests already exist — you are generating the backend they call. The baseline includes contract stubs (`@generated-stub`) with typed signatures; implement them. The contract surfaces table in `tasks.md` lists every stub that must be replaced. Follow the path-specific instructions below for how to approach generation.
+Use the OpenSpec workflow to implement and close this change:
+
+1. Run `/opsx:apply` — this reads `openspec/changes/backend/tasks.md` and drives implementation task by task. Follow the path-specific instructions below for how to approach code generation within each task.
+2. After all tasks pass verification, run `/opsx:archive` to mark the change complete.
+
+The frontend and tests already exist — you are generating the backend they call. The baseline includes contract stubs (`@generated-stub`) with typed signatures; implement them. The contract surfaces table in `tasks.md` lists every stub that must be replaced.
 
 ## Verification
 
