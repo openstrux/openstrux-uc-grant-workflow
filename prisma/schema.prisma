@@ -1,0 +1,162 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enumerations
+// ---------------------------------------------------------------------------
+
+enum ProposalStatus {
+  draft
+  submitted
+  eligibility_failed
+  eligible
+  under_review
+  clarification_requested
+  revised
+  validation_pending
+  selected
+  rejected
+}
+
+enum UserRole {
+  applicant
+  admin
+  reviewer
+  validator
+  auditor
+}
+
+// ---------------------------------------------------------------------------
+// Models
+// ---------------------------------------------------------------------------
+
+/// System actor with a role — used for dev-mode authentication and seeding.
+model User {
+  id           String   @id
+  displayName  String   @map("display_name")
+  role         UserRole
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("user")
+}
+
+/// Funding call configuration.
+model Call {
+  id                       String   @id
+  title                    String
+  description              String
+  openDate                 DateTime? @map("open_date")
+  closeDate                DateTime? @map("close_date")
+  status                   String
+  enabledEligibilityChecks String[] @map("enabled_eligibility_checks")
+  maxBudgetKEur            Int      @map("max_budget_k_eur")
+  reviewerPolicyVersion    String?  @map("reviewer_policy_version")
+  createdAt                DateTime @default(now()) @map("created_at")
+  updatedAt                DateTime @updatedAt @map("updated_at")
+
+  @@map("call")
+}
+
+/// Proposal dossier linking an applicant to a call.
+/// callId is stored as a plain string (no FK) to allow test fixtures without seeded calls.
+model Submission {
+  id             String         @id @default(cuid())
+  callId         String         @map("call_id")
+  applicantAlias String         @map("applicant_alias")
+  status         ProposalStatus @default(submitted)
+  submittedAt    DateTime       @default(now()) @map("submitted_at")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  proposalVersions   ProposalVersion[]
+  applicantIdentity  ApplicantIdentity?
+  eligibilityRecords EligibilityRecord[]
+
+  @@map("submission")
+}
+
+/// Versioned snapshot of proposal content — separable from identity.
+model ProposalVersion {
+  id                  String   @id @default(cuid())
+  submissionId        String   @map("submission_id")
+  versionNumber       Int      @map("version_number")
+  isEffective         Boolean  @default(true) @map("is_effective")
+  title               String
+  abstract            String
+  requestedBudgetKEur Float    @map("requested_budget_k_eur")
+  budgetUsage         String   @map("budget_usage")
+  tasksBreakdown      String   @map("tasks_breakdown")
+  attachmentsMeta     Json?    @map("attachments_meta")
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  submission    Submission     @relation(fields: [submissionId], references: [id])
+  blindedPacket BlindedPacket?
+
+  @@map("proposal_version")
+}
+
+/// Identity and contact data — stored separately from proposal content.
+/// Access restricted to admin; never exposed to reviewers.
+model ApplicantIdentity {
+  id           String   @id @default(cuid())
+  submissionId String   @unique @map("submission_id")
+  legalName    String   @map("legal_name")
+  email        String
+  country      String
+  organisation String
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  submission Submission @relation(fields: [submissionId], references: [id])
+
+  @@map("applicant_identity")
+}
+
+/// Reviewer-facing view of a proposal — identity stripped.
+model BlindedPacket {
+  id                String   @id @default(cuid())
+  proposalVersionId String   @unique @map("proposal_version_id")
+  content           Json
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  proposalVersion ProposalVersion @relation(fields: [proposalVersionId], references: [id])
+
+  @@map("blinded_packet")
+}
+
+/// Result of eligibility gate evaluation.
+model EligibilityRecord {
+  id             String   @id @default(cuid())
+  submissionId   String   @map("submission_id")
+  status         String
+  inputs         Json
+  activeRules    String[] @map("active_rules")
+  failureReasons String[] @map("failure_reasons")
+  evaluatedAt    DateTime @default(now()) @map("evaluated_at")
+
+  submission Submission @relation(fields: [submissionId], references: [id])
+
+  @@map("eligibility_record")
+}
+
+/// Immutable log entry for workflow, access, and policy decisions.
+model AuditEvent {
+  id         String   @id @default(cuid())
+  eventType  String   @map("event_type")
+  actorId    String   @map("actor_id")
+  targetType String   @map("target_type")
+  targetId   String   @map("target_id")
+  payload    Json
+  timestamp  DateTime @default(now())
+
+  @@map("audit_event")
+}

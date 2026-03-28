@@ -1,3 +1,4 @@
+// src/app/api/eligibility/route.ts
 /**
  * POST /api/eligibility
  *
@@ -11,13 +12,12 @@
  *   Response 403: wrong role
  *
  * Auth: verifySession(req) — must have role "admin".
- *
- * @generated-stub — replace with real implementation via backend generation
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { verifySession } from "@/lib/dal";
 import { EligibilityRequestSchema } from "@/domain/schemas";
+import { runEligibilityCheck } from "@/server/services/eligibilityService";
 
 export async function POST(req: NextRequest) {
   const principal = await verifySession(req);
@@ -27,13 +27,13 @@ export async function POST(req: NextRequest) {
   if (principal.role !== "admin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+
   const body = await req.json().catch(() => null);
   const parsed = EligibilityRequestSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
-  return NextResponse.json(
-    { error: "Backend not yet generated. Apply the backend-generation change first." },
-    { status: 501 },
-  );
+
+  const result = await runEligibilityCheck(parsed.data);
+  return NextResponse.json(result, { status: 200 });
 }
