@@ -1,0 +1,151 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ProposalStatus {
+  draft
+  submitted
+  eligibility_failed
+  eligible
+  under_review
+  clarification_requested
+  revised
+  validation_pending
+  selected
+  rejected
+}
+
+enum Role {
+  applicant
+  admin
+  reviewer
+  validator
+  auditor
+}
+
+model User {
+  id           String   @id
+  displayName  String   @map("display_name")
+  role         Role
+  passwordHash String   @map("password_hash")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("user")
+}
+
+model Call {
+  id                       String    @id
+  title                    String
+  description              String
+  openDate                 DateTime? @map("open_date")
+  closeDate                DateTime? @map("close_date")
+  status                   String    @default("open")
+  maxBudgetKEur            Int       @default(500) @map("max_budget_k_eur")
+  enabledEligibilityChecks String[]  @map("enabled_eligibility_checks")
+  reviewerPolicyVersion    String?   @map("reviewer_policy_version")
+  createdAt                DateTime  @default(now()) @map("created_at")
+  updatedAt                DateTime  @updatedAt @map("updated_at")
+
+  submissions Submission[]
+
+  @@map("call")
+}
+
+model Submission {
+  id             String         @id @default(cuid())
+  callId         String         @map("call_id")
+  applicantAlias String         @map("applicant_alias")
+  status         ProposalStatus @default(submitted)
+  submittedAt    DateTime       @default(now()) @map("submitted_at")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  call              Call               @relation(fields: [callId], references: [id])
+  proposalVersions  ProposalVersion[]
+  applicantIdentity ApplicantIdentity?
+  eligibilityRecord EligibilityRecord?
+  auditEvents       AuditEvent[]
+
+  @@map("submission")
+}
+
+model ProposalVersion {
+  id                  String   @id @default(cuid())
+  submissionId        String   @map("submission_id")
+  versionNumber       Int      @default(1) @map("version_number")
+  isEffective         Boolean  @default(true) @map("is_effective")
+  title               String
+  abstract            String
+  requestedBudgetKEur Float    @map("requested_budget_k_eur")
+  budgetUsage         String   @map("budget_usage")
+  tasksBreakdown      String   @map("tasks_breakdown")
+  attachmentsMeta     Json?    @map("attachments_meta")
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  submission    Submission    @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  blindedPacket BlindedPacket?
+
+  @@map("proposal_version")
+}
+
+model ApplicantIdentity {
+  id           String   @id @default(cuid())
+  submissionId String   @unique @map("submission_id")
+  legalName    String   @map("legal_name")
+  email        String
+  country      String
+  organisation String
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@map("applicant_identity")
+}
+
+model BlindedPacket {
+  id                String   @id @default(cuid())
+  proposalVersionId String   @unique @map("proposal_version_id")
+  content           Json
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  proposalVersion ProposalVersion @relation(fields: [proposalVersionId], references: [id], onDelete: Cascade)
+
+  @@map("blinded_packet")
+}
+
+model EligibilityRecord {
+  id             String   @id @default(cuid())
+  submissionId   String   @unique @map("submission_id")
+  status         String
+  inputs         Json
+  activeRules    String[] @map("active_rules")
+  failureReasons String[] @map("failure_reasons")
+  evaluatedAt    DateTime @default(now()) @map("evaluated_at")
+
+  submission Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@map("eligibility_record")
+}
+
+model AuditEvent {
+  id           String   @id @default(cuid())
+  eventType    String   @map("event_type")
+  actorId      String   @map("actor_id")
+  targetType   String   @map("target_type")
+  targetId     String   @map("target_id")
+  payload      Json     @default("{}")
+  timestamp    DateTime @default(now())
+  submissionId String?  @map("submission_id")
+
+  submission Submission? @relation(fields: [submissionId], references: [id], onDelete: SetNull)
+
+  @@map("audit_event")
+}
