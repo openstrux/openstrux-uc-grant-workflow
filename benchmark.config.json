@@ -1,12 +1,5 @@
 {
   "paths": ["direct", "openstrux"],
-  "specs": [
-    "openspec/specs/domain-model.md",
-    "openspec/specs/workflow-states.md",
-    "openspec/specs/access-policies.md",
-    "openspec/specs/mvp-profile.md"
-  ],
-  "tasks": "openspec/changes/backend/tasks.md",
   "testUnit": "pnpm test:unit",
   "testIntegration": "pnpm test:integration",
   "maxRetries": 5

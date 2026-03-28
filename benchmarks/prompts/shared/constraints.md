@@ -1,13 +1,5 @@
 # Generation Constraints
 
-## Hard constraints
-
-- Never merge `ApplicantIdentity` data into a response object meant for reviewers.
-- Every route handler must call `verifySession(req)` and return 401/403 before performing any DB operation.
-- Eligibility check results must record exact input values and the active rule set at evaluation time.
-- All state transitions must produce an `AuditEvent`.
-- Generated TypeScript must use strict mode (`"strict": true` in tsconfig).
-
 ## Naming conventions
 
 - Types: PascalCase, match `openspec/specs/domain-model.md` entity names exactly.

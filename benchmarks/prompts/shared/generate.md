@@ -2,24 +2,25 @@
 
 ## Workflow
 
-Use the OpenSpec workflow to plan and implement this change.
+Follow these steps **in order**. Each step uses an OpenSpec skill that guides you through the process. **Do not skip steps** — Steps 2 and 3 must produce actual files before you write any implementation code.
 
 ### Step 1 — Explore and understand
 
-Run `/opsx:explore backend` to enter explore mode. Use it to:
-- Read the proposal (`openspec/changes/backend/proposal.md`) and all specs under `openspec/changes/backend/specs/`
-- Search for existing specs with `openspec list --json` and browse `openspec/specs/` for domain context (`domain-model.md`, `workflow-states.md`, `access-policies.md`, `mvp-profile.md`)
-- Understand all acceptance criteria (including the path-specific spec under `openspec/changes/backend/specs/`) before designing anything
+Run `/opsx:explore backend` to enter explore mode. Understand all requirements and acceptance criteria before designing anything.
 
-### Step 2 — Create design
+### Step 2 — Create design (REQUIRED before implementation)
 
 Run `/opsx:continue backend` to create `design.md`. Document:
 - Key technical decisions for your path (file structure, patterns, any path-specific choices)
 - How you will satisfy each acceptance criterion from the specs
 
-### Step 3 — Generate your task plan
+**STOP: do not proceed until `openspec/changes/backend/design.md` exists.**
+
+### Step 3 — Generate your task plan (REQUIRED before implementation)
 
 Run `/opsx:continue backend` again to create `tasks.md`. Write your own task checklist covering all acceptance criteria. Use `TodoWrite` to mirror the checklist as active todos.
+
+**STOP: do not proceed until `openspec/changes/backend/tasks.md` exists.**
 
 ### Step 4 — Implement
 

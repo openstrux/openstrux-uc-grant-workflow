@@ -4,17 +4,6 @@ Generate the backend using the Openstrux language: write `.strux` source files t
 
 **You MUST write `.strux` files first.** This is the openstrux benchmark path — skipping straight to TypeScript defeats the purpose. The `.strux` files are a first-class deliverable.
 
-Use `/opsx:explore backend` to discover all specs — the path-specific constraints (required `.strux` files, gap-fill list, thin-route rule, acceptance criteria) are in `openspec/changes/backend/specs/`, alongside the shared functional specs in `openspec/specs/` (domain model, workflow states, access policies, MVP profile).
-
-## How to use
-
-Include in this order:
-1. `prompts/shared/system.md`
-2. `prompts/shared/constraints.md`
-3. `prompts/shared/generate.md`
-4. **this file**
-5. `prompts/shared/task-format.md`
-
 ## Step 1 — Learn the language
 
 The Openstrux language reference is bundled locally in `openstrux-lang/`. Read in this order:

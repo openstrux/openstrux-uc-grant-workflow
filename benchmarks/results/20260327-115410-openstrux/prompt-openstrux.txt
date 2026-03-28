@@ -1,0 +1,1100 @@
+# System
+
+# System Prompt — Grant Workflow Backend Generation
+
+You are implementing the backend of a privacy-first grant review system. The system is based on the requirements in `openspec/specs/domain-model.md`, `openspec/specs/workflow-states.md`, and `openspec/specs/access-policies.md`.
+
+## Stack
+- TypeScript (strict mode)
+- Next.js 16 (App Router, route handlers)
+- Prisma 6 (PostgreSQL 18)
+- Zod 3 (input validation)
+- JWT-based role middleware (no external IdP required for P0-P2)
+
+## Principles
+
+1. **Structure first**: generated code faithfully implements the specs. Do not add behavior not specified.
+2. **Trust built in**: access controls are implemented at the service layer, not just in the UI.
+3. **Identity separation**: `ApplicantIdentity` is always in a separate code and data path from `ProposalVersion` content.
+4. **Explicit policy**: eligibility and access rules are functions in `src/policies/`, not hidden application behavior.
+5. **Audit trail**: every significant action produces an `AuditEvent`.
+
+## What already exists
+
+The repository ships with:
+- `src/app/` — Next.js frontend (pages, forms, navigation) calling predefined service interfaces
+- `tests/unit/`, `tests/integration/`, `tests/integration-mock/`, and `tests/e2e/` — vitest tests as acceptance criteria
+- Contract stubs with typed signatures that you must implement:
+  - `src/domain/schemas/index.ts` — Zod schemas (entity + API request/response)
+  - `src/policies/index.ts` — barrel exporting pure functions (`evaluateEligibility`, `createBlindedPacket`, `isValidTransition`, `getNextStatus`)
+  - `src/server/services/submissionService.ts` — `submitProposal`, `listSubmissions`, `getSubmission`
+  - `src/server/services/eligibilityService.ts` — `runEligibilityCheck`
+  - `src/lib/dal.ts` — `verifySession(req)` → `Principal | null`
+  - `src/app/api/intake/route.ts` and `src/app/api/eligibility/route.ts` — route stubs
+- `prisma/` — Prisma schema location (`prisma/schema.prisma`)
+
+Tests import only from these contract surfaces. Internal file structure within packages is free.
+
+## What you are building
+
+The backend: Prisma schema, domain schemas, pure policy functions, service layer, DAL, and API route handlers. The frontend and tests are already present. Replace the `@generated-stub` markers with real implementations.
+
+## Output format
+
+Follow the output format instructions in the phase-specific prompt. All generated TypeScript must compile with `tsc --noEmit`.
+
+
+---
+
+# Constraints
+
+# Generation Constraints
+
+## Hard constraints
+
+- Never merge `ApplicantIdentity` data into a response object meant for reviewers.
+- Every route handler must call `verifySession(req)` and return 401/403 before performing any DB operation.
+- Eligibility check results must record exact input values and the active rule set at evaluation time.
+- All state transitions must produce an `AuditEvent`.
+- Generated TypeScript must use strict mode (`"strict": true` in tsconfig).
+
+## Naming conventions
+
+- Types: PascalCase, match `openspec/specs/domain-model.md` entity names exactly.
+- DB tables: snake_case, match entity names (e.g., `applicant_identity`, `proposal_version`).
+- Service functions: camelCase verbs (e.g., `submitProposal`, `evaluateEligibility`).
+- Route files: Next.js App Router convention (`app/api/<resource>/route.ts`).
+
+## Code style
+
+- No `any` types.
+- Use `zod` for all external input validation.
+- Prisma transactions for operations that touch multiple models.
+- No raw SQL unless Prisma is insufficient.
+
+## What to skip
+
+- P3-P6 features (review scoring, clarification, validation, audit export) — stub with `501 Not Implemented` if needed.
+- UI components — the frontend is pre-built.
+- External IdP integration — use role middleware with dev-mode `X-Role` header for testing.
+- The `benchmarks/` directory — it contains benchmark tooling and run artefacts, not application code. Do not read or modify anything under `benchmarks/`.
+
+
+---
+
+# domain-model
+
+# Domain Model
+
+Version: 0.1.0 | Covers: P0-P2 (v0.6.0)
+
+## Core entities
+
+### User
+A system actor with a role. Used for dev-mode authentication and seeding; not an external IdP record.
+- `id` (matches `X-User-Id` header), `display_name`, `role` (Principal), `password_hash` (bcrypt, dev only)
+
+### Call
+A funding call with configuration for eligibility checks and submission window.
+- `id`, `title`, `description`, `open_date`, `close_date`, `status`
+- Config: `enabled_eligibility_checks[]`, `max_budget_k_eur`, `reviewer_policy_version`
+
+### Submission
+A proposal dossier linking an applicant to a call.
+- `id`, `call_id`, `applicant_alias`, `status` (ProposalStatus), `submitted_at`
+
+### ProposalVersion
+A versioned snapshot of proposal content (separable from identity).
+- `id`, `submission_id`, `version_number`, `is_effective`
+- Content: `title`, `abstract`, `requested_budget_k_eur`, `budget_usage`, `tasks_breakdown`, `attachments_meta`
+
+### ApplicantIdentity
+Identity and contact data — stored separately from proposal content.
+- `id`, `submission_id`, `legal_name`, `email`, `country`, `organisation`
+
+### BlindedPacket
+Reviewer-facing view of a proposal — identity stripped.
+- `id`, `proposal_version_id`, `content` (JSON blob, identity-free)
+
+### EligibilityRecord
+Result of eligibility gate evaluation.
+- `id`, `submission_id`, `status` (eligible | ineligible | pending)
+- `inputs` (EligibilityInputs), `active_rules[]`, `failure_reasons[]`, `evaluated_at`
+
+### EligibilityInputs
+- `submitted_in_english: boolean`
+- `aligned_with_call: boolean`
+- `primary_objective_is_rd: boolean`
+- `meets_european_dimension: "true" | "false" | "not_applicable"`
+- `requested_budget_k_eur: number`
+- `first_time_applicant_in_programme: boolean`
+
+### AuditEvent
+Immutable log entry for workflow, access, and policy decisions.
+- `id`, `event_type`, `actor_id`, `target_type`, `target_id`, `payload` (JSON), `timestamp`
+
+## Enumerations
+
+### ProposalStatus
+`draft | submitted | eligibility_failed | eligible | under_review | clarification_requested | revised | validation_pending | selected | rejected`
+
+### ReviewStatus (P3+)
+`not_started | assigned | acknowledged | reviewing | completed | withdrawn`
+
+### Principal (role enum)
+`applicant | admin | reviewer | validator | auditor`
+
+## Relationships
+
+```
+User (role)
+Call ──< Submission ──< ProposalVersion ──> BlindedPacket
+              │
+              ├──> ApplicantIdentity (separated, restricted access)
+              └──> EligibilityRecord
+```
+
+
+---
+
+# workflow-states
+
+# Workflow States
+
+## ProposalStatus transitions
+
+```
+draft
+  └─[submit]──> submitted
+                  └─[eligibility check]──> eligible
+                  │                        └─[assign reviewer]──> under_review
+                  │                                               └─[clarification]──> clarification_requested
+                  │                                               │                    └─[applicant responds]──> revised
+                  │                                               └─[shortlist]──> validation_pending
+                  │                                               │                └─[validate]──> selected | rejected
+                  │                                               └─[reject]──> rejected
+                  └─[eligibility check]──> eligibility_failed
+```
+
+## Access rules per state
+
+| State | Applicant | Reviewer | Admin |
+|---|---|---|---|
+| draft | read/write | — | read |
+| submitted | read | — | read/write |
+| eligibility_failed | read | — | read/write |
+| eligible | read | — | read/write |
+| under_review | read | read (blinded) | read/write |
+| clarification_requested | read/write | read | read/write |
+| revised | read | read (blinded) | read/write |
+| validation_pending | read | read | read/write |
+| selected | read | read | read/write |
+| rejected | read | — | read |
+
+## Invariants
+
+- Reviewer can never access `applicant_identity` records.
+- Reviewer assignment is blocked when `status = eligibility_failed`.
+- BlindedPacket is generated automatically on transition to `eligible`.
+- All state transitions generate an `AuditEvent`.
+
+
+---
+
+# access-policies
+
+# Access Policies
+
+## Principals
+
+- `applicant` — authenticated submitter; access limited to own submissions
+- `admin` — review administrator; access to all proposals, identity, and workflow controls
+- `reviewer` — assigned reviewer; access only to blinded packets of assigned proposals
+- `validator` — independent validator (P5+); access to shortlisted blinded packets
+- `auditor` — read-only access to audit logs and retention evidence
+
+## Policies
+
+### POLICY: applicant-own-proposals
+- Principal: `applicant`
+- Operation: read/write
+- Scope: `Submission` where `applicant_alias = caller.identity`
+- Excludes: `BlindedPacket`, `EligibilityRecord.failure_reasons` (admin-only)
+
+### POLICY: admin-all
+- Principal: `admin`
+- Operation: read/write/delete
+- Scope: all entities
+- Restrictions: deletion only via retention/anonymisation workflow (audit-logged)
+
+### POLICY: reviewer-blinded-assigned
+- Principal: `reviewer`
+- Operation: read
+- Scope: `BlindedPacket` where `submission_id IN reviewer.assigned_proposals`
+- Explicitly excludes: `ApplicantIdentity`, `Submission.applicant_alias` field
+
+### POLICY: deny-identity-to-reviewer
+- Principal: `reviewer`
+- Operation: any
+- Resource: `ApplicantIdentity`
+- Effect: DENY (hard, logged)
+
+## Pseudonymization rule
+
+All documents presented to reviewers and validators must be pseudonymized. No identity field (legal name, email, country, organisation, applicant alias) may appear in any response, view, or export accessible to the `reviewer` or `validator` principal. The blinded packet is the only reviewer-accessible representation of a proposal. This applies to API responses, UI rendering, and any future export or reporting feature.
+
+## Enforcement points
+
+1. Next.js route middleware — check JWT role, resolve principal
+2. Service layer — call policy function before any DB query
+3. DB model — separate tables for identity vs. proposal content
+4. Blinded packet mapper — strip identity fields at generation time; verified by golden test
+
+## Audit requirements
+
+All access control decisions (allow and deny) are logged as `AuditEvent` with `event_type: "access"`.
+
+## Dev fixtures
+
+The following user IDs and roles are canonical for local development and seeding. Authentication uses `X-Role` / `X-User-Id` request headers (dev mode only).
+
+| User ID | Display name | Role | Password (dev only) |
+|---|---|---|---|
+| `user-applicant-01` | Alice Applicant | `applicant` | `applicant123` |
+| `user-admin-01` | Bob Admin | `admin` | `admin123` |
+| `user-reviewer-01` | Carol Reviewer | `reviewer` | `reviewer123` |
+| `user-validator-01` | David Validator | `validator` | `validator123` |
+| `user-auditor-01` | Eve Auditor | `auditor` | `auditor123` |
+
+The seed must also create a default `Call` record:
+
+```json
+{
+  "id": "eu-oss-fund-2026",
+  "title": "EU Open Source Fund 2026",
+  "description": "Funding for open source software projects with European dimension.",
+  "status": "open",
+  "maxBudgetKEur": 500,
+  "enabledEligibilityChecks": ["submittedInEnglish", "alignedWithCall", "primaryObjectiveIsRd", "meetsEuropeanDimension", "requestedBudgetKEur"]
+}
+```
+
+
+---
+
+# mvp-profile
+
+# MVP Profile
+
+Defines which features are active for the v0.6.0 demo.
+
+## Active phases
+
+| Phase | Status | Notes |
+|---|---|---|
+| P0 — Domain model | active | All P0-P2 entities implemented |
+| P1 — Intake | active | Submission + blinded packet |
+| P2 — Eligibility | active | Boolean/numeric gate |
+| P3 — Review | stub | Routes return 501 |
+| P4 — Clarification | stub | Routes return 501 |
+| P5 — Validation | stub | Routes return 501 |
+| P6 — Audit/lifecycle | stub | Routes return 501 |
+
+## Feature flags
+
+```json
+{
+  "phases": {
+    "p0_domain_model": true,
+    "p1_intake": true,
+    "p2_eligibility": true,
+    "p3_review": false,
+    "p4_clarification": false,
+    "p5_validation": false,
+    "p6_audit": false
+  }
+}
+```
+
+## Enabled eligibility checks (default)
+
+All checks active for the demo call:
+- `submittedInEnglish`
+- `alignedWithCall`
+- `primaryObjectiveIsRd`
+- `meetsEuropeanDimension`
+- `requestedBudgetKEur` (max: 500)
+- `firstTimeApplicantInProgramme`
+
+## Default call configuration
+
+```json
+{
+  "callId": "eu-oss-fund-2026",
+  "title": "EU Open Source Fund 2026",
+  "maxBudgetKEur": 500,
+  "enabledEligibilityChecks": ["submittedInEnglish", "alignedWithCall", "primaryObjectiveIsRd", "meetsEuropeanDimension", "requestedBudgetKEur", "firstTimeApplicantInProgramme"]
+}
+```
+
+
+---
+
+# Tasks
+
+## 0. Baseline corrections (GAP-001)
+
+Apply before or alongside generation — these are pre-existing test/fixture files, not generated code.
+
+- [ ] 0.1 `tests/unit/eligibility.test.ts` — add `"firstTimeApplicantInProgramme"` to `ALL_RULES`; add test: `"returns ineligible when firstTimeApplicantInProgramme is false"`; add test: `"does not fail firstTimeApplicantInProgramme when not in active rules"`
+- [ ] 0.2 `tests/integration-mock/eligibility.test.ts` — in the `"updates submission status to eligible on pass"` test, change `firstTimeApplicantInProgramme: false` → `true`
+- [ ] 0.3 `tests/fixtures/eligibility/all-pass.json` — add `"firstTimeApplicantInProgramme"` to `activeRules`
+- [ ] 0.4 `tests/fixtures/eligibility/language-fail.json` — add `"firstTimeApplicantInProgramme"` to `activeRules`
+- [ ] 0.5 `tests/fixtures/eligibility/multiple-fail.json` — add `"firstTimeApplicantInProgramme"` to `activeRules`
+
+## 1. Domain model
+
+- [ ] 1.1 Write `prisma/schema.prisma` — models: `User`, `Call`, `Submission`, `ProposalVersion`, `ApplicantIdentity`, `BlindedPacket`, `EligibilityRecord`, `AuditEvent`; all child models use `onDelete: Cascade` on their `Submission` relation
+- [ ] 1.2 Write `src/lib/prisma.ts` — singleton `PrismaClient` instance (process-scoped, dev-safe)
+- [ ] 1.3 Implement `src/domain/schemas/index.ts` — replace stubs with real Zod schemas; `IntakeRequestSchema` identity fields (`legalName`, `email`, `country`, `organisation`) must be **optional**
+
+## 2. Policy functions
+
+- [ ] 2.1 Implement `evaluateEligibility` in `src/policies/index.ts` — pure function; evaluates inputs against `activeRules`; returns `{ status, failureReasons, inputs, activeRules }`; handles all 6 MVP checks including `firstTimeApplicantInProgramme`
+- [ ] 2.2 Implement `createBlindedPacket` — strip identity fields from proposal content; read `tests/unit/blindedPacket.test.ts` for exact field list
+- [ ] 2.3 Implement `isValidTransition` and `getNextStatus` — per `openspec/specs/workflow-states.md`
+- [ ] 2.4 Ensure `packages/policies/src/index.ts` re-exports everything from `src/policies/index.ts`
+
+## 3. Services
+
+- [ ] 3.1 Implement `submitProposal` in `src/server/services/submissionService.ts` — create `Submission`, `ProposalVersion`, `BlindedPacket`, and `AuditEvent` atomically
+- [ ] 3.2 Implement `runEligibilityCheck` in `src/server/services/eligibilityService.ts` — persist `EligibilityRecord`, transition submission status, write audit event; derive `activeRules` from `Call.enabledEligibilityChecks`; fall back to `MVP_DEFAULT_RULES` (6 checks) if call not found
+
+## 4. API routes
+
+- [ ] 4.1 Implement `src/app/api/intake/route.ts` — replace stub: `verifySession` → 401/403 → validate with `IntakeRequestSchema` → `submitProposal`
+- [ ] 4.2 Implement `src/app/api/eligibility/route.ts` — replace stub: `verifySession` → 401/403 → validate with `EligibilityRequestSchema` → `runEligibilityCheck`
+
+## 5. Seed
+
+- [ ] 5.1 Write `prisma/seeds/seed.ts` — upsert one `User` per role and the default `Call` per `openspec/specs/access-policies.md §Dev fixtures`; `Call.enabledEligibilityChecks` must include all 6 MVP checks; use placeholder string for `passwordHash` (never import `bcrypt`); idempotent
+
+## 6. Verification
+
+- [ ] 6.1 `tsc --noEmit` exits 0 at the project root
+- [ ] 6.2 All unit tests in `tests/unit/` pass (`pnpm test:unit`)
+- [ ] 6.3 All tests in `tests/integration-mock/` pass (`pnpm test:integration:mock`, no DB required)
+- [ ] 6.4 All integration tests in `tests/integration/` pass (`pnpm test:integration`, requires `DATABASE_URL`)
+
+
+---
+
+# Generation Instructions
+
+# Generate Backend — Common Instructions
+
+## Workflow
+
+Use the OpenSpec workflow to implement and close this change:
+
+1. Run `/opsx:apply` — reads `openspec/changes/backend/tasks.md` and drives implementation task by task. Follow the path-specific instructions below for how to approach code generation within each task.
+2. After all verification tasks pass, run `/opsx:archive` to mark the change complete.
+
+The design decisions, spec pointers, and technical constraints are in `openspec/changes/backend/design.md` — read it before generating any code.
+
+## Gap log
+
+If any spec or requirement is ambiguous or missing, do not guess. Log the gap at the end of your response:
+```
+## Gaps
+- [GAP-NNN] <what was missing or unclear> — <what you assumed or skipped>
+```
+
+
+---
+
+# Openstrux Language Reference
+
+# Openstrux 0.6.0 — Syntax Reference
+
+Self-sufficient entry point — generate valid `.strux` from this document alone.
+Deeper spec links provided; load only when compact rules here are insufficient.
+
+Openstrux: AI-native language. Systems as typed graphs (panels of rods);
+generate executable code from source. Goals: token-efficient, certified by
+design, human-translatable, structure-first, trust built in.
+
+---
+
+## Type Forms
+
+```
+@type Name { field: Type, field2: Type }                    // record
+@type Name = enum { val1, val2, val3 }                      // enum
+@type Name = union { tag1: Type1, tag2: Type2 }             // union
+```
+
+Primitives: `string`, `number`, `bool`, `date`, `bytes`.
+Containers: `Optional<T>`, `Batch<T>`, `Map<K,V>`, `Single<T>`, `Stream<T>`.
+Constraint: `number [0..100]`, `string ["a","b","c"]`.
+
+## Type Paths
+
+Union narrowing via dot-path: `db.sql.postgres` resolves `DataSource → DbSource → SqlSource → PostgresConfig`.
+Wildcards: `db.sql.*` (any SQL), `db.*` (any DB), `*` (any).
+
+## Panel Structure
+
+Shorthand (recommended for authoring):
+
+```
+@panel name {
+  @dp { record }                                      // inherits controller etc. from strux.context
+  @access { purpose, operation }                       // inherits basis, scope from context
+  name = rod-type { key: val, key2: val2 }             // implicit chain: reads from previous rod
+  name2 = rod-type { key: val, from: other.knot }      // explicit: reads from non-default output
+}
+```
+
+Shorthand rules (verbose remains valid — both normalize to same AST):
+
+1. `@rod` keyword optional inside `@panel` — every non-decorator statement is a rod.
+   The `=` separator between name and type remains: `name = rod-type { ... }`.
+2. `cfg.`/`arg.` prefixes optional — compiler resolves from rod type definition.
+3. Implicit linear chain — each rod reads previous rod's default output (no snap needed).
+4. `@access` intent fields can be flattened (drop the `intent:` wrapper).
+
+Verbose and shorthand equivalence:
+
+```
+@rod f = filter { arg.predicate = ..., snap db.out.rows -> in.data }   // verbose
+f = filter { predicate: ..., from: db.rows }                           // shorthand explicit
+f = filter { predicate: ... }                                          // shorthand implicit chain
+src = read-data { source: @production, mode: "scan", @ops { retry: 5, fallback: @backup } }  // rod-level @ops
+```
+
+## 18 Basic Rods
+
+### I/O — Data
+
+| Rod | cfg | arg | in | out | err |
+|-----|-----|-----|----|-----|-----|
+| `read-data` | source: DataSource, mode: ReadMode | predicate?, fields?, limit? | — | rows/elements, meta | failure |
+| `write-data` | target: DataTarget | — | rows/elements | receipt, meta | failure, reject |
+
+ReadMode: `scan`, `lookup`, `multi_lookup`, `query`, `stream`.
+Table/collection selection via `arg.predicate` (e.g., `predicate: sql: SELECT * FROM users`).
+
+### I/O — Service
+
+| Rod | cfg | arg | in | out | err |
+|-----|-----|-----|----|-----|-----|
+| `receive` | trigger: Trigger | timeout? | — | request, context | invalid |
+| `respond` | — | status?, headers? | data | sent | failure |
+| `call` | target: ServiceTarget, method: CallMethod | path?, headers?, timeout? | request | response, metadata | failure, timeout |
+
+Trigger: `http{method,path}`, `grpc{service,method}`, `event{source,topic}`, `schedule{cron?,interval?}`, `queue{source,queue}`, `manual{}`.
+ServiceTarget: `http{base_url,auth?,tls}`, `grpc{host,port,proto,tls}`, `function{provider,name}`.
+CallMethod: `get`, `post`, `put`, `patch`, `delete`, `unary`, `server_stream`, `invoke`.
+
+### Computation
+
+| Rod | Key knots |
+|-----|-----------|
+| `transform` | cfg.mode: map\|flat_map\|project, arg.fields/fn, in.data→out.data |
+| `filter` | arg.predicate, in.data→out.match+out.reject |
+| `group` | arg.key, in.data→out.grouped |
+| `aggregate` | arg.fn, in.grouped→out.result |
+| `merge` | in.left+in.right→out.merged |
+| `join` | cfg.mode: inner\|left\|right\|outer\|cross\|lookup, arg.on, in.left+in.right→out.joined+out.unmatched |
+| `window` | cfg.kind: fixed\|sliding\|session, cfg.size: duration, in.data→out.windowed |
+
+### Control
+
+| Rod | Key knots |
+|-----|-----------|
+| `guard` | cfg.policy: PolicyRef, arg.policy (shorthand), in.data→out.allowed+out.modified, err.denied |
+| `store` | cfg.backend: StateBackend, cfg.mode: get\|put\|delete\|cas\|increment, in.key+in.value?→out.result |
+
+### Compliance
+
+| Rod | Key knots |
+|-----|-----------|
+| `validate` | cfg.schema: SchemaRef, in.data→out.valid, err.invalid |
+| `pseudonymize` | cfg.algo, arg.fields, in.data→out.masked |
+| `encrypt` | cfg.key_ref, arg.fields, in.data→out.encrypted |
+
+SchemaRef: `@type` reference or named schema from context (e.g., `schema: UserPayload`).
+
+### Topology
+
+| Rod | Key knots |
+|-----|-----------|
+| `split` | arg.routes, in.data→out.{route_name}... |
+
+### Default Knots (for implicit chaining)
+
+| Rod | Default out | Default in |
+|-----|------------|------------|
+| read-data | rows (db) / elements (stream) | — (source) |
+| filter | match | data |
+| transform | data | data |
+| group | grouped | data |
+| aggregate | result | grouped |
+| pseudonymize | masked | data |
+| validate | valid | data |
+| encrypt | encrypted | data |
+| merge | merged | left (+ right) |
+| join | joined | left (+ right) |
+| split | (named routes — no default, explicit `from:` required downstream) | data |
+| write-data | receipt | rows / elements |
+| receive | request | — (trigger) |
+| respond | sent | data |
+| call | response | request |
+| guard | allowed | data |
+| store | result | key |
+| window | windowed | data |
+
+`window → group → aggregate` chains without explicit wiring (`windowed` is compatible with `group.in.data` and `aggregate.in.grouped`).
+
+## Data Union Trees
+
+```
+DataSource = stream (kafka, pubsub, kinesis) | db (sql: postgres/mysql/bigquery, nosql: mongodb/dynamodb/firestore)
+```
+
+DataTarget follows the same union tree as DataSource.
+
+Config patterns:
+
+```
+db.sql.postgres { host, port, db_name, tls, credentials: secret_ref{provider,path} }
+stream.kafka { brokers, topic, credentials }
+stream.pubsub { project, topic }
+stream.kinesis { region, stream_name, credentials }
+```
+
+## Expression Shorthand
+
+Expressions use SQL-like syntax. Source-specific prefixes: `sql:`, `mongo:`, `kafka:`, `fn:`, `opa:`, `cedar:`.
+
+### Filter (arg.predicate)
+
+```
+field == "val"                              // compare (==, !=, >, >=, <, <=)
+a AND b, a OR b, NOT a, (a OR b) AND c     // logic
+field IN ("a","b","c"), field NOT IN (...)   // in-list
+field BETWEEN 1 AND 100                     // range
+field IS NULL, field IS NOT NULL            // null
+field LIKE "pat%", field EXISTS             // pattern, existence
+sql: id IN (SELECT ...)                     // SQL-specific (pushes to SQL only)
+mongo: {"field": {"$gt": 1}}               // Mongo-specific
+fn: mod/core.my_filter                      // function ref (no pushdown)
+```
+
+### Projection (arg.fields)
+
+```
+[id, email, address.country AS country]                    // select + rename
+[*, -password_hash, -internal_id]                          // exclude
+[id, amount * 0.21 AS iva, COALESCE(nick, name) AS disp]  // computed
+```
+
+### Aggregation (arg.fn)
+
+```
+COUNT(*), SUM(amount), AVG(score), MIN(x), MAX(x)         // single
+COUNT(DISTINCT country)                                     // distinct
+[COUNT(*) AS total, AVG(age) AS avg_age]                   // multi
+```
+
+### Group Key (arg.key)
+
+```
+country, YEAR(created_at)                   // field + function
+```
+
+### Join (arg.on)
+
+```
+left.user_id == right.id AND left.tenant == right.tenant
+```
+
+### Sort (arg.order)
+
+```
+created_at DESC NULLS LAST, id ASC
+```
+
+### Split Routes (arg.routes)
+
+```
+{ eu: country IN ("ES","FR","DE"), us: country == "US", other: * }
+```
+
+### Guard Policy (arg.policy)
+
+```
+principal.roles HAS "admin"                                // role check
+principal.roles HAS ANY ("admin","dpo")                    // any-of
+element.owner_id == principal.id                           // row-level
+opa: data.authz.allow                                      // external engine
+```
+
+Rod shorthand: `g = guard { policy: opa: data.authz.allow }`.
+
+## Pushdown Rules
+
+Portable expressions push to any source. Prefixed push only to matching source (`sql:` → SQL, `mongo:` → Mongo). Type mismatch = compile error. Sequential pushable rods fuse into single adapter call (logical plan preserved for audit).
+
+## Decorators
+
+```
+@dp { controller, controller_id, dpo, record, basis?, fields? }
+@sec { encryption?, classification?, audit? }
+@ops { retry?, timeout?, circuit_breaker?, rate_limit?, fallback? }
+@cert { scope: { source: "db.sql.postgres" }, hash, version }
+@access { intent: { purpose, basis, operation }, scope: policy("name") }
+```
+
+`@ops` field types:
+
+```
+retry: number                                // max attempts
+timeout: duration                            // "30s", "5m"
+fallback: @name | rod-name                   // named source or rod on exhaustion
+circuit_breaker: { threshold: number, window: duration }
+rate_limit: { max: number, window: duration }
+```
+
+## Context Inheritance
+
+Shared config in `strux.context` files. Panels inherit and override.
+
+```
+project-root/
+  strux.context              # project-wide: @dp, named @source/@target, @ops, @sec
+  domain-a/
+    strux.context            # team overrides (narrower @access, domain sources)
+    pipelines/
+      panel.strux            # only unique intent, logic, routing
+```
+
+### `strux.context` syntax
+
+```
+@context {
+  @dp { controller: "Acme", controller_id: "B-123", dpo: "dpo@acme.com" }
+  @access { intent: { basis: "legitimate_interest" }, scope: policy("default-read") }
+  @source production = db.sql.postgres { host: env("DB_HOST"), port: 5432, ... }
+  @target analytics = db.sql.bigquery { project: "analytics", location: "EU", ... }
+  @ops { retry: 3, timeout: "30s" }
+}
+```
+
+### Inheritance rules
+
+| Block | Inheritable | Merge behavior |
+|-------|------------|----------------|
+| `@dp` | Yes | Field-level merge, panel wins |
+| `@access` | Yes | Panel can **narrow** scope, never widen (compile error) |
+| `@source` | Yes (by `@name`) | `cfg.source = @production` references named source; inline fields override |
+| `@target` | Yes (by `@name`) | Same as @source |
+| `@ops` | Yes | Field-level merge, nearest wins |
+| `@sec` | Yes | Field-level merge |
+| `@cert` | **No** | Per-component only, never inherited |
+
+## Built-in References and Credentials
+
+```
+@name                                       // named @source/@target from strux.context
+@name { field: override }                   // resolve + override fields inline
+env("VAR_NAME")                             // environment variable
+secret_ref { provider: vault, path: "..." } // secret reference
+policy("name")                              // named policy (hub, OPA, or Cedar); compile-time ref
+adc {}                                      // GCP Application Default Credentials (empty record)
+```
+
+SecretRef providers: `gcp_secret_manager`, `aws_secrets_manager`, `vault`, `env`.
+
+---
+
+## Grammar Essentials
+
+### Lexical
+
+```
+name          = letter { letter | digit | "_" | "-" }
+string        = '"' { char | escape } '"'
+escape        = '\"' | '\\' | '\n' | '\t' | '\r'
+number        = digit { digit } [ "." digit { digit } ]
+bool          = "true" | "false"
+duration      = number ("s" | "m" | "h" | "d")               // "30s", "5m", "24h"
+comment       = "//" (everything until end of line)
+```
+
+Whitespace ignored outside strings. Braces delimit blocks.
+
+### Reserved Words
+
+Keywords — cannot be used as `name`:
+
+```
+@type @panel @context @rod @dp @access @sec @ops @cert @source @target
+@when @adapter                                                           // reserved (type-system, semantics)
+union enum record
+read-data write-data receive respond call transform filter group aggregate
+merge join window guard store validate pseudonymize encrypt split
+AND OR NOT IN BETWEEN IS NULL LIKE EXISTS AS CASE WHEN THEN ELSE END
+HAS ANY ALL DISTINCT NULLS FIRST LAST ASC DESC COALESCE
+COUNT SUM AVG MIN MAX COLLECT
+true false null
+env secret_ref policy snap from
+```
+
+Type scope notes: `StateBackend` — per adapter ([type-system.md](type-system.md)).
+`PolicyRef` — hub or policy store ([design-notes.md](design-notes.md) §5).
+`COLLECT` — reserved for future grouped collection. `CASE/WHEN/THEN/ELSE/END` — reserved for conditional expressions.
+
+### Operator Precedence (highest to lowest)
+
+| Precedence | Operators | Associativity |
+|-----------|-----------|---------------|
+| 1 | `()` grouping | — |
+| 2 | unary `NOT`, unary `-` | right |
+| 3 | `*` `/` `%` | left |
+| 4 | `+` `-` | left |
+| 5 | `==` `!=` `>` `>=` `<` `<=` | non-associative |
+| 6 | `IN` `NOT IN` `BETWEEN` `IS` `LIKE` `EXISTS` `HAS` | non-associative |
+| 7 | `AND` | left |
+| 8 | `OR` | left |
+
+### Normalization
+
+Verbose and shorthand produce identical AST:
+
+- `@rod name = type { cfg.field = val }` ≡ `name = type { field: val }`.
+- Rods without `from:` → implicit snap edges via default knots.
+- Flat `@access { purpose, operation }` → routes to `intent` sub-structure.
+
+---
+
+## Semantic Essentials
+
+### Evaluation Order
+
+Rods execute in **topological order** of the snap graph (not declaration order).
+For linear chains these are equivalent. Branches from multi-output rods
+(filter.match/reject, split routes) MAY run in parallel.
+
+### Implicit Chaining Rules
+
+1. First rod in a panel has no implicit input (it is a source).
+2. Each subsequent rod without `from:` reads the previous rod's **default output**.
+3. `from: rod.knot` overrides implicit chain (reads named output knot).
+4. `from: [rod1, rod2]` for multi-input rods — first = left, second = right.
+5. Implicit chain follows the **default** output only (match, not reject).
+   Non-default outputs require explicit `from:` on downstream rods.
+6. After normalization, all chains are explicit in the IR.
+7. Source rods (`read-data`, `receive`, `in: —`) always start a new chain
+   regardless of position — they never consume the previous rod's output.
+8. A rod with explicit `from:` does not advance the implicit chain. The next
+   rod without `from:` chains from the last implicit-chain rod, not the branch.
+
+`from: rod.knot` resolves across `out` and `err` namespaces — knot names are
+unique per rod, so the namespace prefix is dropped in shorthand.
+
+Multi-input example:
+
+```
+users = read-data { source: @production, mode: "scan" }
+orders = read-data { source: @production, mode: "scan" }
+j = join { mode: "inner", on: left.user_id == right.id, from: [users, orders] }
+//   ↑ normalizes to: snap users.out.rows -> in.left, snap orders.out.rows -> in.right
+```
+
+### AccessContext
+
+- `@access` evaluated implicitly for every rod — no explicit wiring needed.
+- Empty AccessContext → **deny** (fail-closed).
+- Scope narrows downstream, never widens. Enforced at compile time.
+- `guard` rod is the explicit business-policy evaluation point.
+
+### Error Propagation
+
+1. If `err` knot is wired to a downstream rod → error data flows there.
+2. If unwired → apply `@ops { retry }` first, then `@ops { fallback }` on exhaustion.
+3. If neither → panel fails with unhandled error. Errors **never** silently discarded.
+
+`write-data` has two error knots: `failure` (transport/system, follows cascade
+above) and `reject` (data-level, e.g. schema mismatch). `reject` is a typed
+branch, not a failure channel — wire it like any non-default output (typically DLQ).
+
+### Determinism
+
+**Same source + same `snap.lock` = same compiled output.** Lock captures context
+chain hashes, so `strux.context` is pinned. Applies to compiled artifacts, not
+runtime behavior. Verbose and shorthand produce identical artifacts.
+
+### Pushdown & Fusion
+
+See Pushdown Rules above. `fn:` references break the fusion chain (execute
+in-memory). Logical plan always preserved for audit regardless of physical fusion.
+
+---
+
+## Full Panel Example
+
+Verbose form (~336 tokens):
+
+```
+@panel user-analytics {
+  @dp { controller: "MiEmpresa SL", controller_id: "ES-B12345678", dpo: "dpo@miempresa.es", record: "RPA-2026-003" }
+  @access { intent: { purpose: "geo_segmentation", basis: "legitimate_interest", operation: "read" }, scope: policy("data-engineering-read") }
+  @rod db = read-data {
+    cfg.source = db.sql.postgres {
+      host: env("DB_HOST"), port: 5432, db_name: "production", tls: true
+      credentials: secret_ref { provider: gcp_secret_manager, path: "projects/mi/secrets/pg" }
+    }
+    cfg.mode = "scan"
+  }
+  @rod f = filter {
+    arg.predicate = address.country IN ("ES", "FR", "DE") AND deleted_at IS NULL
+    snap db.out.rows -> in.data
+  }
+  @rod p = pseudonymize {
+    cfg.algo = "sha256", arg.fields = ["full_name", "email", "national_id"]
+    snap f.out.match -> in.data
+  }
+  @rod sink = write-data {
+    cfg.target = db.sql.bigquery { project: "miempresa-analytics", dataset: "eu_users", location: "EU", credentials: adc {} }
+    snap p.out.masked -> in.rows
+  }
+  @rod dlq = write-data {
+    cfg.target = stream.pubsub { project: "miempresa", topic: "dlq" }
+    snap f.out.reject -> in.elements
+  }
+}
+```
+
+With context inheritance + shorthand (~142 tokens):
+
+```
+@panel user-analytics {
+  @dp { record: "RPA-2026-003" }
+  @access { purpose: "geo_segmentation", operation: "read" }
+  db = read-data { source: @production, mode: "scan" }
+  f = filter { predicate: address.country IN ("ES", "FR", "DE") AND deleted_at IS NULL }
+  p = pseudonymize { algo: "sha256", fields: ["full_name", "email", "national_id"] }
+  sink = write-data { target: @analytics { dataset: "eu_users" } }
+  dlq = write-data { target: @dlq, from: f.reject }
+}
+```
+
+---
+
+## Specification Map
+
+This reference is self-sufficient for generation. Load only when deeper detail is needed:
+
+| Document | When to load |
+|----------|-------------|
+| [grammar.md](grammar.md) | Full EBNF, all productions, edge cases |
+| [semantics.md](semantics.md) | Formal evaluation model, error rules, determinism proofs |
+| [type-system.md](type-system.md) | Union nesting, adapter registration, type narrowing details |
+| [expression-shorthand.md](expression-shorthand.md) | All expression forms, compiler pushdown/fusion behavior |
+| [panel-shorthand.md](panel-shorthand.md) | Shorthand derivation, token budget analysis |
+| [config-inheritance.md](config-inheritance.md) | Context cascade, merge/narrowing semantics, compiled output format |
+| [conformance.md](conformance.md) | Conformance levels, fixture format, diagnostic codes |
+| [ir.md](ir.md) | IR node structure, compiler pipeline |
+| [locks.md](locks.md) | Lock file format, reproducible build guarantees |
+
+
+---
+
+# Path Instructions
+
+# Openstrux Path
+
+Generate the backend using the Openstrux language: write `.strux` source files that define the domain model and data flows, compile to TypeScript via `strux build`, then fill any gaps the toolchain doesn't cover with hand-written TypeScript.
+
+**You MUST write `.strux` files first.** This is the openstrux benchmark path — skipping straight to TypeScript defeats the purpose. The `.strux` files are a first-class deliverable.
+
+## How to use
+
+Include in this order:
+1. `prompts/shared/system.md`
+2. `prompts/shared/constraints.md`
+3. `prompts/shared/generate.md`
+4. **this file**
+5. `prompts/shared/task-format.md`
+
+## Step 1 — Learn the language
+
+The Openstrux language reference is bundled locally in `openstrux-lang/`. Read in this order:
+
+1. **`openstrux-lang/syntax-reference.md`** — compact, self-sufficient reference. Covers type forms, panel structure, shorthand rules, rod taxonomy, expressions, decorators, context inheritance. **Read this first — it is included in the prompt.**
+2. **`openstrux-lang/examples/`** — concrete `.strux` files that parse and typecheck cleanly. Study these before writing your own:
+   - `p0-domain-model.strux` — types + panel for a grant-workflow domain (closest to your task)
+   - `v003-panel-shorthand.strux` — shorthand syntax (no `@rod`, no `cfg./arg.` prefix)
+   - `v020-validate-schema-ref.strux` — validate rod with SchemaRef to a declared `@type`
+   - `v020-write-data-target.strux` — write-data with DataTarget
+   - `v010-context-named-source.strux` — named `@source` resolution from context
+3. **Deep specs** — load only when syntax-reference and examples are insufficient:
+   - `openstrux-lang/grammar.md` — full EBNF
+   - `openstrux-lang/type-system.md` — union/record/enum, type paths, narrowing
+   - `openstrux-lang/panel-shorthand.md` — shorthand derivation rules
+   - `openstrux-lang/config-inheritance.md` — context cascade semantics
+   - `openstrux-lang/semantics.md` — evaluation model
+   - `openstrux-lang/access-context.strux` — AccessContext type definitions
+
+## Step 2 — Bootstrap
+
+Verify the toolchain is available and the project config is correct:
+
+```bash
+npx strux --version                        # should print a version
+cat strux.config.yaml                      # verify source globs and output dir
+```
+
+Check `strux.config.yaml` — verify source globs include `pipelines/**/*.strux` and `openspec/specs/**/*.strux`, and output dir is `.openstrux/build`.
+
+If `npx strux` is not available, you can still write `.strux` files — the benchmark runner will attempt to compile them during apply. Focus on producing correct `.strux` source and gap-filling the TypeScript stubs.
+
+## Step 3 — Write `.strux` source files
+
+Read the functional specs (`openspec/specs/domain-model.md`, `openspec/specs/workflow-states.md`, `openspec/specs/access-policies.md`, `openspec/specs/mvp-profile.md`) and express them as `.strux`:
+
+- **`strux.context`** (project root) — project-wide `@context`: controller, DPO, common policies, named `@source`/`@target` for PostgreSQL
+- **`pipelines/strux.context`** — domain-level overrides: narrower access scope, domain-specific sources/targets
+- **`openspec/specs/p0-domain-model.strux`** — `@type` definitions for all P0-P2 entities from `openspec/specs/domain-model.md`
+- **`pipelines/intake/p1-intake.strux`** — intake pipeline panel (receive → validate → write, with identity separation and blinded packet generation)
+- **`pipelines/eligibility/p2-eligibility.strux`** — eligibility pipeline panel (guard → evaluate → write, with status transition and audit)
+
+Use shorthand syntax. Leverage context cascade: panels should declare only the delta from context. Prefer named references (`@source`, `@target`) over inline config.
+
+## Step 4 — Build (if toolchain available)
+
+```bash
+npx strux build --explain
+```
+
+`--explain` shows what each panel compiles to. Verify zero error diagnostics. If errors occur, fix the `.strux` source and rebuild.
+
+If `strux build` is not available, skip to Step 5 — the `.strux` files you wrote are still valuable output.
+
+## Step 5 — Fill gaps
+
+After writing `.strux` files (and optionally running `strux build`), implement all remaining TypeScript stubs that the `.strux` source doesn't cover:
+
+- **Prisma schema** (`prisma/schema.prisma`) — the `.strux` types inform but don't generate the Prisma schema
+- **Zod schemas** (`src/domain/schemas/index.ts`)
+- **Policy functions** (`src/policies/index.ts`) — `evaluateEligibility`, `createBlindedPacket`, `isValidTransition`, `getNextStatus`
+- **Service layer** (`src/server/services/submissionService.ts`, `eligibilityService.ts`)
+- **DAL** (`src/lib/dal.ts`) — `verifySession`
+- **Route handlers** (`src/app/api/intake/route.ts`, `src/app/api/eligibility/route.ts`)
+- **Prisma client** (`src/lib/prisma.ts`)
+- **Seed** (`prisma/seeds/seed.ts`)
+
+The `.strux` source defines the domain model and data flows; the TypeScript gap-fills implement the contract stubs that tests import from.
+
+## Output
+
+Both `.strux` source files and TypeScript gap-fills are deliverables:
+
+```
+strux.context              # project-wide context
+pipelines/**/*.strux       # pipeline panels
+openspec/specs/*.strux     # type definitions
+src/**/*.ts                # gap-fill implementations
+prisma/schema.prisma       # database schema
+prisma/seeds/seed.ts       # seed script
+```
+
+## Gap log
+
+Log anything you couldn't express in `.strux` or couldn't find in the language docs:
+```
+## Gaps
+- [GAP-001] <functional gap> — <workaround used>
+- [DOC-001] <missing from language docs> — <where you looked>
+```
+
+These gaps feed back into the Openstrux spec improvement cycle.
+
+
+---
+
+# Output Format
+
+# Task Format
+
+When implementing a phase, produce output in this format:
+
+## File list
+
+Start with a brief file list:
+```
+Files to create/modify:
+- prisma/schema.prisma
+- src/domain/src/entities/Proposal.ts
+- ...
+```
+
+## File contents
+
+For each file, use a fenced code block where **the first line inside the block is a comment containing the relative file path**. The path comment must be the very first line — no blank lines before it.
+
+TypeScript / JavaScript files:
+```typescript
+// src/lib/dal.ts
+export function verifySession() { ... }
+```
+
+Prisma schema:
+```prisma
+// prisma/schema.prisma
+model Submission { ... }
+```
+
+Do NOT put the file path as a markdown header outside the block (e.g. `**\`src/lib/dal.ts\`**`). The path must be inside the block as the first line comment, exactly as shown above. This is required for automated extraction.
+
+## Verification
+
+After completing all files, confirm:
+- [ ] All entities from `openspec/specs/domain-model.md` are implemented
+- [ ] Access policies from `openspec/specs/access-policies.md` are enforced
+- [ ] `tsc --noEmit` would pass (no type errors)
+- [ ] All referenced service interfaces from `` are satisfied
+
+## Benchmark fields
+
+When your implementation is complete, estimate:
+- `generatedFileCount`: number of new files created
+- `totalLines`: approximate total lines of generated code
+- `llm`: the model you used
+
+
+---
+
+# Delivery
+
+**Your working directory is already the project root.** Use relative paths for all file operations — do not reference absolute paths.
+
+This run is tracking benchmark branch `bench-20260327-115410-openstrux`. You may end up on a different branch — that is expected for web sessions.
+
+When your implementation is complete, commit your work:
+
+```bash
+git add -A
+git commit -m "feat(generation): implement backend (openstrux path)"
+```
+
+Do **not** push — the apply step will locate your branch automatically via `--bench-branch`.
+
+In your final summary, include the output of `git branch --show-current` so the apply step can target the correct branch.
+
+---
+
+After your final code block, output this exact line (replace N with your output token count for this whole response):
+<!-- benchmark-meta: {"outputTokens": N} -->
