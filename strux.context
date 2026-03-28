@@ -1,0 +1,23 @@
+@context {
+  @dp {
+    controller: "OpenStrux Grant Workflow",
+    controller_id: "EU-GRANT-WORKFLOW-001",
+    dpo: "dpo@grant-workflow.eu"
+  }
+  @access {
+    intent: {
+      purpose: "grant_administration",
+      basis: "legitimate_interest",
+      operation: "read"
+    },
+    scope: policy("default-read")
+  }
+  @source production = db.sql.postgres {
+    host: env("DB_HOST"),
+    port: 5432,
+    db_name: env("DB_NAME"),
+    tls: true,
+    credentials: secret_ref { provider: env, path: "DATABASE_URL" }
+  }
+  @ops { retry: 3, timeout: "30s" }
+}

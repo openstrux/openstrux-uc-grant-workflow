@@ -1,0 +1,16 @@
+@context {
+  @dp {
+    controller: "OpenStrux Grant Workflow",
+    controller_id: "EU-GRANT-WORKFLOW-001",
+    dpo: "dpo@grant-workflow.eu"
+  }
+  @access {
+    intent: {
+      purpose: "grant_pipeline",
+      basis: "legitimate_interest",
+      operation: "read"
+    },
+    scope: policy("pipeline-read")
+  }
+  @ops { retry: 2, timeout: "15s" }
+}

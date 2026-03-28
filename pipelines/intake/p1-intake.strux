@@ -1,0 +1,31 @@
+// P1 Intake Pipeline — receives proposal submission, validates, stores, creates blinded packet
+// Corresponds to openspec/changes/backend/specs/proposal-intake/spec.md
+
+@panel p1-intake {
+  @dp { record: "RPA-P1-INTAKE" }
+  @access { purpose: "proposal_intake", operation: "write" }
+
+  // Receive HTTP POST /api/intake
+  recv = receive { trigger: http { method: "POST", path: "/api/intake" } }
+
+  // Authenticate session and enforce role (applicant | admin)
+  auth = guard { policy: principal.roles HAS ANY ("applicant", "admin") }
+
+  // Validate request body against IntakeRequest schema
+  valid = validate { schema: IntakeRequest }
+
+  // Write Submission record
+  save_submission = write-data { target: @production }
+
+  // Write ProposalVersion record
+  save_proposal_version = write-data { target: @production }
+
+  // Write BlindedPacket (identity-stripped reviewer view)
+  save_blinded_packet = write-data { target: @production }
+
+  // Write AuditEvent for submission creation
+  save_audit = write-data { target: @production }
+
+  // Respond 201 with submissionId
+  resp = respond { status: 201 }
+}

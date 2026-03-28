@@ -1,0 +1,31 @@
+// P2 Eligibility Pipeline — evaluates eligibility inputs, persists record, transitions status
+// Corresponds to openspec/changes/backend/specs/eligibility-evaluation/spec.md
+
+@panel p2-eligibility {
+  @dp { record: "RPA-P2-ELIGIBILITY" }
+  @access { purpose: "eligibility_evaluation", operation: "write" }
+
+  // Receive HTTP POST /api/eligibility
+  recv = receive { trigger: http { method: "POST", path: "/api/eligibility" } }
+
+  // Authenticate session and enforce admin-only role
+  auth = guard { policy: principal.roles HAS "admin" }
+
+  // Validate request body against EligibilityRequest schema
+  valid = validate { schema: EligibilityRequest }
+
+  // Pure eligibility evaluation — checks boolean/numeric rules against active rule set
+  eval = transform { mode: "map" }
+
+  // Persist EligibilityRecord with status, inputs, active_rules, failure_reasons
+  save_record = write-data { target: @production }
+
+  // Update Submission.status to eligible | eligibility_failed
+  update_status = write-data { target: @production }
+
+  // Write AuditEvent for eligibility check
+  save_audit = write-data { target: @production }
+
+  // Respond 200 with { status, failureReasons }
+  resp = respond { status: 200 }
+}
