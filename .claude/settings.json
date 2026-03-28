@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"/home/homofaber/proj/openstrux/benchmarks/runner/cc-stop-hook.py\" \"/tmp/prompt-verify\""
+            "command": "python3 .claude/cc-stop-hook.py"
           }
         ]
       }

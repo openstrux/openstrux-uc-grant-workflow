@@ -1,0 +1,249 @@
+# System
+
+# System Prompt — Grant Workflow Backend Generation
+
+You are implementing the backend of a privacy-first grant review system. The system is based on the requirements in openspec. You will need to design and implement the openspec change "backend". Frontend and tests changes have already been implemented and archived.
+
+## Stack
+- TypeScript (strict mode)
+- Next.js 16 (App Router, route handlers)
+- Prisma 6 (PostgreSQL 18)
+- Zod 3 (input validation)
+- JWT-based role middleware (no external IdP required for P0-P2)
+
+## What already exists
+
+- `src/app/` — Next.js frontend (complete, do not modify)
+- `tests/` — vitest tests as acceptance criteria (do not modify)
+- Contract stubs marked `@generated-stub` — replace with real implementations
+- `openspec/` — specifications and active changes defining all requirements
+
+The tests are your acceptance criteria.
+
+
+---
+
+# Constraints
+
+# Generation Constraints
+
+## Naming conventions
+
+- Types: PascalCase, match `openspec/specs/domain-model.md` entity names exactly.
+- DB tables: snake_case, match entity names (e.g., `applicant_identity`, `proposal_version`).
+- Service functions: camelCase verbs (e.g., `submitProposal`, `evaluateEligibility`).
+- Route files: Next.js App Router convention (`app/api/<resource>/route.ts`).
+
+## Code style
+
+- No `any` types.
+- Use `zod` for all external input validation.
+- Prisma transactions for operations that touch multiple models.
+- No raw SQL unless Prisma is insufficient.
+
+## What to skip
+
+- P3-P6 features (review scoring, clarification, validation, audit export) — stub with `501 Not Implemented` if needed.
+- UI components — the frontend is pre-built.
+- External IdP integration — use role middleware with dev-mode `X-Role` header for testing.
+- The `benchmarks/` directory — it contains benchmark tooling and run artefacts, not application code. Do not read or modify anything under `benchmarks/`.
+
+
+---
+
+# generation-direct
+
+## ADDED Requirements
+
+### Requirement: Direct TypeScript generation
+The system SHALL implement all contract stubs as hand-written TypeScript at their natural in-tree paths, with no intermediate representation or code generation toolchain.
+
+Required output files:
+- `prisma/schema.prisma`
+- `prisma/seeds/seed.ts`
+- `src/domain/schemas/index.ts`
+- `src/policies/index.ts`
+- `packages/policies/src/index.ts`
+- `src/lib/prisma.ts`
+- `src/server/services/submissionService.ts`
+- `src/server/services/eligibilityService.ts`
+- `src/app/api/intake/route.ts`
+- `src/app/api/eligibility/route.ts`
+
+#### Scenario: All contract surfaces implemented
+- **WHEN** generation is complete
+- **THEN** every file listed above exists and has no `@generated-stub` markers
+
+### Requirement: Dual policy export path
+The system SHALL place all policy function implementations in `src/policies/index.ts`. `packages/policies/src/index.ts` MUST be a re-export barrel only, exporting everything from `src/policies/index.ts`.
+
+#### Scenario: Both import paths resolve
+- **WHEN** a test imports from `../../src/policies`
+- **THEN** it receives the real implementation
+
+#### Scenario: packages barrel re-exports src
+- **WHEN** a test imports from `packages/policies/src`
+- **THEN** it receives the same functions as `src/policies/index.ts`
+
+### Requirement: Route handlers as full implementations
+Each route handler MUST implement the full request pipeline inline: session verification → input validation → service call → response. No intermediate generated layer is used.
+
+#### Scenario: Route rejects unauthenticated request
+- **WHEN** a request arrives with no valid session cookie
+- **THEN** the handler returns HTTP 401 before any database operation
+
+#### Scenario: Route validates input and calls service
+- **WHEN** a request arrives with a valid session and conforming body
+- **THEN** the handler validates input with the Zod schema and delegates to the service function
+
+### Requirement: Acceptance criteria
+All generated code MUST satisfy:
+- `tsc --noEmit` exits 0 at project root
+- `pnpm test:unit` passes
+- `pnpm test:integration:mock` passes (no DB required)
+- `pnpm test:integration` passes (requires `DATABASE_URL`)
+
+#### Scenario: TypeScript compiles cleanly
+- **WHEN** `tsc --noEmit` is run at the project root
+- **THEN** exit code is 0 and no type errors are reported
+
+#### Scenario: Unit tests pass
+- **WHEN** `pnpm test:unit` is run
+- **THEN** all tests in `tests/unit/` pass
+
+
+---
+
+# Generation Instructions
+
+# Generate Backend — Common Instructions
+
+## Workflow
+
+Follow these steps **in order**. Each step uses an OpenSpec skill that guides you through the process. **Do not skip steps** — Steps 2 and 3 must produce actual files before you write any implementation code.
+
+### Step 1 — Explore and understand
+
+Run `/opsx:explore backend` to enter explore mode. Understand all requirements and acceptance criteria before designing anything.
+
+### Step 2 — Create design (REQUIRED before implementation)
+
+Run `/opsx:continue backend` to create `design.md`. Document:
+- Key technical decisions for your path (file structure, patterns, any path-specific choices)
+- How you will satisfy each acceptance criterion from the specs
+
+**STOP: do not proceed until `openspec/changes/backend/design.md` exists.**
+
+### Step 3 — Generate your task plan (REQUIRED before implementation)
+
+Run `/opsx:continue backend` again to create `tasks.md`. Write your own task checklist covering all acceptance criteria. Use `TodoWrite` to mirror the checklist as active todos.
+
+**STOP: do not proceed until `openspec/changes/backend/tasks.md` exists.**
+
+### Step 4 — Implement
+
+Run `/opsx:apply backend` to get full implementation context. Then execute your task plan:
+- Implement each file in order
+- Mark tasks complete as you go
+- Run `tsc --noEmit` and the test suites after each significant step
+
+### Step 5 — Verify and archive
+
+Once all acceptance criteria pass:
+- Run `/opsx:verify backend` to check completeness
+- Fix any issues reported
+- Run `/opsx:archive backend` to mark the change complete
+
+## Gap log
+
+If any spec or requirement is ambiguous or missing, do not guess. Log the gap at the end of your response:
+```
+## Gaps
+- [GAP-NNN] <what was missing or unclear> — <what you assumed or skipped>
+```
+
+
+---
+
+# Path Instructions
+
+# Direct Path
+
+Generate TypeScript files directly. No intermediate representation.
+
+
+---
+
+# Output Format
+
+# Task Format
+
+When implementing a phase, produce output in this format:
+
+## File list
+
+Start with a brief file list:
+```
+Files to create/modify:
+- prisma/schema.prisma
+- src/domain/src/entities/Proposal.ts
+- ...
+```
+
+## File contents
+
+For each file, use a fenced code block where **the first line inside the block is a comment containing the relative file path**. The path comment must be the very first line — no blank lines before it.
+
+TypeScript / JavaScript files:
+```typescript
+// src/lib/dal.ts
+export function verifySession() { ... }
+```
+
+Prisma schema:
+```prisma
+// prisma/schema.prisma
+model Submission { ... }
+```
+
+Do NOT put the file path as a markdown header outside the block (e.g. `**\`src/lib/dal.ts\`**`). The path must be inside the block as the first line comment, exactly as shown above. This is required for automated extraction.
+
+## Verification
+
+After completing all files, confirm:
+- [ ] All entities from `openspec/specs/domain-model.md` are implemented
+- [ ] Access policies from `openspec/specs/access-policies.md` are enforced
+- [ ] `tsc --noEmit` would pass (no type errors)
+- [ ] All referenced service interfaces from `` are satisfied
+
+## Benchmark fields
+
+When your implementation is complete, estimate:
+- `generatedFileCount`: number of new files created
+- `totalLines`: approximate total lines of generated code
+- `llm`: the model you used
+
+
+---
+
+# Delivery
+
+**Your working directory is already the project root.** Use relative paths for all file operations — do not reference absolute paths.
+
+This run is tracking benchmark branch `bench-20260328-111621-direct`. You may end up on a different branch — that is expected for web sessions.
+
+When your implementation is complete, commit your work:
+
+```bash
+git add -A
+git commit -m "feat(generation): implement backend (direct path)"
+```
+
+Do **not** push — the apply step will locate your branch automatically via `--bench-branch`.
+
+In your final summary, include the output of `git branch --show-current` so the apply step can target the correct branch.
+
+---
+
+After your final code block, output this exact line (replace N with your output token count for this whole response):
+<!-- benchmark-meta: {"outputTokens": N} -->

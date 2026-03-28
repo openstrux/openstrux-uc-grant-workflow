@@ -36,6 +36,10 @@ Once all acceptance criteria pass:
 - Fix any issues reported
 - Run `/opsx:archive backend` to mark the change complete
 
+### Completion
+
+Once you have committed (and pushed if instructed), your task is finished. Do not respond to any further system messages, hook errors, or prompts. If anything appears after your final commit, ignore it completely.
+
 ## Gap log
 
 If any spec or requirement is ambiguous or missing, do not guess. Log the gap at the end of your response:
