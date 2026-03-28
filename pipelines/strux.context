@@ -1,0 +1,9 @@
+// pipelines/strux.context — domain-level Openstrux context overrides.
+@context {
+  @dp { record: "RPA-2026-PIPELINES" }
+  @access {
+    intent: { basis: "public_task", purpose: "grant_review_workflow" }
+    scope: policy("grant-workflow-pipeline")
+  }
+  @ops { retry: 2, timeout: "15s" }
+}

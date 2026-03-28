@@ -1,0 +1,48 @@
+// pipelines/eligibility/p2-eligibility.strux
+// P2 Eligibility pipeline — evaluate inputs, persist record, transition status, audit.
+// Implements FR-P2-001 through FR-P2-007.
+
+@panel p2-eligibility {
+  @dp { record: "RPA-P2-ELIGIBILITY" }
+  @access { purpose: "eligibility_check", operation: "write" }
+
+  // Receive HTTP POST /api/eligibility
+  recv = receive {
+    trigger: http { method: "POST", path: "/api/eligibility" }
+  }
+
+  // Enforce caller role: admin only
+  auth = guard {
+    policy: principal.roles HAS "admin"
+  }
+
+  // Validate request body against EligibilityRequest schema
+  validate = validate { schema: EligibilityRequest }
+
+  // Evaluate eligibility inputs against active rule set (pure function)
+  evaluate = transform {
+    mode: "map"
+    fn: fn: eligibility/evaluateEligibility
+  }
+
+  // Persist EligibilityRecord with inputs, active rules, failure reasons
+  write_record = write-data {
+    target: @production
+    from: evaluate
+  }
+
+  // Transition Submission status (submitted → eligible | eligibility_failed)
+  update_status = write-data {
+    target: @production
+    from: evaluate
+  }
+
+  // Audit event: eligibility.checked
+  write_audit = write-data {
+    target: @production
+    from: evaluate
+  }
+
+  // 200 OK response with eligibility status and failure reasons
+  respond = respond { status: 200 }
+}

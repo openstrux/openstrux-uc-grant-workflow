@@ -1,0 +1,100 @@
+// openspec/specs/p0-domain-model.strux
+// P0 domain model — @type definitions for all P0-P2 entities.
+// Derived from openspec/specs/domain-model.md.
+
+@type ProposalStatus = enum {
+  draft, submitted, eligibility_failed, eligible, under_review,
+  clarification_requested, revised, validation_pending, selected, rejected
+}
+
+@type ReviewStatus = enum {
+  not_started, assigned, acknowledged, reviewing, completed, withdrawn
+}
+
+@type Principal = enum { applicant, admin, reviewer, validator, auditor }
+
+@type EligibilityStatus = enum { eligible, ineligible, pending }
+
+@type User {
+  id: string
+  display_name: string
+  role: Principal
+  password_hash: string
+}
+
+@type Call {
+  id: string
+  title: string
+  description: string
+  open_date: Optional<date>
+  close_date: Optional<date>
+  status: string
+  enabled_eligibility_checks: Batch<string>
+  max_budget_k_eur: number
+  reviewer_policy_version: Optional<string>
+}
+
+@type Submission {
+  id: string
+  call_id: string
+  applicant_alias: string
+  status: ProposalStatus
+  submitted_at: date
+}
+
+@type ProposalVersion {
+  id: string
+  submission_id: string
+  version_number: number
+  is_effective: bool
+  title: string
+  abstract: string
+  requested_budget_k_eur: number
+  budget_usage: string
+  tasks_breakdown: string
+  attachments_meta: Optional<Map<string, string>>
+}
+
+@type ApplicantIdentity {
+  id: string
+  submission_id: string
+  legal_name: string
+  email: string
+  country: string
+  organisation: string
+}
+
+@type BlindedPacket {
+  id: string
+  proposal_version_id: string
+  content: Map<string, string>
+}
+
+@type EligibilityInputs {
+  submitted_in_english: bool
+  aligned_with_call: bool
+  primary_objective_is_rd: bool
+  meets_european_dimension: string ["true", "false", "not_applicable"]
+  requested_budget_k_eur: number
+  first_time_applicant_in_programme: bool
+}
+
+@type EligibilityRecord {
+  id: string
+  submission_id: string
+  status: EligibilityStatus
+  inputs: EligibilityInputs
+  active_rules: Batch<string>
+  failure_reasons: Batch<string>
+  evaluated_at: date
+}
+
+@type AuditEvent {
+  id: string
+  event_type: string
+  actor_id: string
+  target_type: string
+  target_id: string
+  payload: Map<string, string>
+  timestamp: date
+}
