@@ -4,8 +4,6 @@
  * Both front-end and back-end import from here.
  * Field names use camelCase (TypeScript convention).
  * All types are derived via z.infer<> — never duplicated manually.
- *
- * @generated-stub — replace with real implementation via backend generation
  */
 
 import { z } from "zod";
