@@ -17,7 +17,7 @@ The system SHALL create a `Submission`, `ProposalVersion`, `BlindedPacket`, and 
 
 #### Scenario: Audit event generated on submission
 - **WHEN** `submitProposal` succeeds
-- **THEN** an `AuditEvent` with `eventType: "submission.created"` and `targetType: "Submission"` is created
+- **THEN** an `AuditEvent` with `eventType: "submission.created"`, `targetType: "Submission"`, and `actorId` equal to the authenticated session's `userId` is created
 
 ### Requirement: Identity separation via blinded packet
 The system SHALL strip all applicant identity fields from the blinded packet content. The `BlindedPacket.content` MUST contain evaluable proposal fields (`title`, `abstract`, `requestedBudgetKEur`, `budgetUsage`, `tasksBreakdown`) and MUST NOT contain any identity fields.

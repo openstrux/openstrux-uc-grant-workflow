@@ -71,7 +71,7 @@ The system SHALL produce an `AuditEvent` with `eventType: "eligibility.checked"`
 
 #### Scenario: Audit event generated
 - **WHEN** `runEligibilityCheck` completes (pass or fail)
-- **THEN** an `AuditEvent` with `eventType: "eligibility.checked"` and `targetType: "Submission"` is created
+- **THEN** an `AuditEvent` with `eventType: "eligibility.checked"`, `targetType: "Submission"`, and `actorId` equal to the authenticated session's `userId` is created
 
 ### Requirement: Active rule derivation
 The system SHALL derive `activeRules` from `Call.enabledEligibilityChecks` when a matching `Call` record exists, and SHALL fall back to `MVP_DEFAULT_RULES` when it does not.
