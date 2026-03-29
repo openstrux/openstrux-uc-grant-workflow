@@ -3,6 +3,8 @@
 ### Requirement: Atomic proposal submission
 The system SHALL create a `Submission`, `ProposalVersion`, `BlindedPacket`, and `AuditEvent` atomically within a single database transaction when `submitProposal` is called. Partial state MUST NOT be persisted if any step fails.
 
+**Mock-compatibility note:** The integration-mock test suite mocks individual Prisma model methods and does not support `prisma.$transaction()`. Implementations MUST use sequential individual writes (not a `$transaction` callback) so that mock tests can intercept each call. This is an accepted trade-off: the real-DB integration tests verify correctness end-to-end; the unit tests verify each write in isolation.
+
 #### Scenario: Submission created with submitted status
 - **WHEN** `submitProposal` is called with valid intake data
 - **THEN** a `Submission` record is created with `status: "submitted"` and the result contains a `submissionId` and `status`

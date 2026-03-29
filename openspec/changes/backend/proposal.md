@@ -4,13 +4,13 @@ The grant workflow use case has a complete frontend and test suite but no backen
 
 ## What Changes
 
-- `packages/policies/src` — implement `evaluateEligibility`, `createBlindedPacket`, `isValidTransition`, `getNextStatus` (barrel exports only)
-- `src/server/services/submitProposal.ts` — implement proposal intake service (atomic write: Submission + ProposalVersion + BlindedPacket + AuditEvent)
-- `src/server/services/runEligibilityCheck.ts` — implement eligibility check service (evaluate rules, persist EligibilityRecord, transition submission status)
+- `src/policies/index.ts` — implement `evaluateEligibility`, `createBlindedPacket`, `isValidTransition`, `getNextStatus`, `checkAccess`; `packages/policies/src/index.ts` is a re-export barrel only
+- `src/server/services/submissionService.ts` — implement `submitProposal` (write: Submission + ProposalVersion + ApplicantIdentity + BlindedPacket + AuditEvent)
+- `src/server/services/eligibilityService.ts` — implement `runEligibilityCheck` (evaluate rules, persist EligibilityRecord, transition submission status, AuditEvent)
 - `src/app/api/intake/route.ts` — replace 501 stub with real handler calling `submitProposal`
 - `src/app/api/eligibility/route.ts` — replace 501 stub with real handler calling `runEligibilityCheck`
-- `prisma/schema.prisma` — add all missing models (Submission, ProposalVersion, BlindedPacket, EligibilityRecord, AuditEvent) with correct relations and cascade deletes
-- `prisma/seed.ts` — seed DEV_USERS into the database
+- `prisma/schema.prisma` — add all missing models (Submission, ProposalVersion, ApplicantIdentity, BlindedPacket, EligibilityRecord, AuditEvent) with correct relations and cascade deletes
+- `prisma/seeds/seed.ts` — seed DEV_USERS and default Call into the database
 
 ## Capabilities
 
@@ -28,9 +28,9 @@ The grant workflow use case has a complete frontend and test suite but no backen
 
 ## Impact
 
-- `packages/policies/src` — new implementations (currently empty barrel)
-- `src/server/services/` — two new service files
+- `src/policies/index.ts` — replace all stub implementations; `packages/policies/src/index.ts` unchanged (already a re-export barrel)
+- `src/server/services/submissionService.ts`, `eligibilityService.ts` — replace stub implementations
 - `src/app/api/intake/route.ts`, `src/app/api/eligibility/route.ts` — replace stubs
-- `prisma/schema.prisma` — new models; requires `prisma migrate dev`
-- `prisma/seed.ts` — new seed script
+- `prisma/schema.prisma` — new models; requires `prisma db push` or `prisma migrate dev`
+- `prisma/seeds/seed.ts` — new seed script
 - All integration and e2e tests currently fail (no DB schema, no service logic); this change makes them pass
