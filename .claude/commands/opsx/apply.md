@@ -15,31 +15,42 @@ Implement tasks from an OpenSpec change.
 
    If a name is provided, use it. Otherwise:
    - Infer from conversation context if the user mentioned a change
-   - Auto-select if only one active change exists (`ls openspec/changes/`)
-   - If ambiguous, use the **AskUserQuestion tool** to let the user select
+   - Auto-select if only one active change exists
+   - If ambiguous, run `openspec list --json` to get available changes and use the **AskUserQuestion tool** to let the user select
 
    Always announce: "Using change: <name>" and how to override (e.g., `/opsx:apply <other>`).
 
-2. **Check status by reading the filesystem**
-
-   For the **spec-driven schema** (the standard schema used by this project):
+2. **Check status to understand the schema**
    ```bash
-   ls openspec/changes/<name>/
-   ls openspec/changes/<name>/specs/ 2>/dev/null
+   openspec status --change "<name>" --json
+   ```
+   Parse the JSON to understand:
+   - `schemaName`: The workflow being used (e.g., "spec-driven")
+   - Which artifact contains the tasks (typically "tasks" for spec-driven, check status for others)
+
+3. **Get apply instructions**
+
+   ```bash
+   openspec instructions apply --change "<name>" --json
    ```
 
-   - If `design.md` or `tasks.md` are missing: suggest using `/opsx:continue` first
-   - If `tasks.md` exists: proceed to implementation
+   This returns:
+   - Context file paths (varies by schema)
+   - Progress (total, complete, remaining)
+   - Task list with status
+   - Dynamic instruction based on current state
 
-3. **Read context files directly**
+   **Handle states:**
+   - If `state: "blocked"` (missing artifacts): show message, suggest using `/opsx:continue`
+   - If `state: "all_done"`: congratulate, suggest archive
+   - Otherwise: proceed to implementation
 
-   For the spec-driven schema, read these files:
-   - `openspec/changes/<name>/proposal.md`
-   - All files under `openspec/changes/<name>/specs/`
-   - `openspec/changes/<name>/design.md`
-   - `openspec/changes/<name>/tasks.md`
+4. **Read context files**
 
-   Parse the tasks.md to get the task list. Unchecked items (`- [ ]`) are pending; checked items (`- [x]`) are done.
+   Read the files listed in `contextFiles` from the apply instructions output.
+   The files depend on the schema being used:
+   - **spec-driven**: proposal, specs, design, tasks
+   - Other schemas: follow the contextFiles from CLI output
 
 5. **Show current progress**
 
