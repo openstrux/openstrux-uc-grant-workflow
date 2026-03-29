@@ -84,15 +84,15 @@ You have full context of the OpenSpec system. Use it naturally, don't force it.
 
 ### Check for context
 
-At the start, quickly check what exists by listing the changes directory:
+At the start, quickly check what exists:
 ```bash
-ls openspec/changes/ 2>/dev/null
+openspec list --json
 ```
 
-This tells you what active changes exist. If there are changes, list their artifact files:
-```bash
-ls openspec/changes/<name>/
-```
+This tells you:
+- If there are active changes
+- Their names, schemas, and status
+- What the user might be working on
 
 If the user mentioned a specific change name, read its artifacts for context.
 
