@@ -13,29 +13,26 @@ Verify that an implementation matches the change artifacts (specs, tasks, design
 
 1. **If no change name provided, prompt for selection**
 
-   Run `openspec list --json` to get available changes. Use the **AskUserQuestion tool** to let the user select.
-
-   Show changes that have implementation tasks (tasks artifact exists).
-   Include the schema used for each change if available.
-   Mark changes with incomplete tasks as "(In Progress)".
-
-   **IMPORTANT**: Do NOT guess or auto-select a change. Always let the user choose.
-
-2. **Check status to understand the schema**
+   List available changes:
    ```bash
-   openspec status --change "<name>" --json
+   ls openspec/changes/
    ```
-   Parse the JSON to understand:
-   - `schemaName`: The workflow being used (e.g., "spec-driven")
-   - Which artifacts exist for this change
+   Use the **AskUserQuestion tool** to let the user select. Do NOT auto-select.
 
-3. **Get the change directory and load artifacts**
-
+2. **Check which artifacts exist**
    ```bash
-   openspec instructions apply --change "<name>" --json
+   ls openspec/changes/<name>/
+   ls openspec/changes/<name>/specs/ 2>/dev/null
    ```
+   For the spec-driven schema the expected artifacts are: `proposal.md`, `specs/`, `design.md`, `tasks.md`.
 
-   This returns the change directory and context files. Read all available artifacts from `contextFiles`.
+3. **Load all change artifacts**
+
+   Read all available artifacts directly:
+   - `openspec/changes/<name>/proposal.md`
+   - All files under `openspec/changes/<name>/specs/`
+   - `openspec/changes/<name>/design.md` (if exists)
+   - `openspec/changes/<name>/tasks.md` (if exists)
 
 4. **Initialize verification report structure**
 

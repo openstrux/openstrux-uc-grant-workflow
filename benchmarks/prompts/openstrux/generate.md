@@ -28,13 +28,13 @@ The Openstrux language reference is bundled locally in `openstrux-lang/`. Read i
 Verify the toolchain is available and the project config is correct:
 
 ```bash
-npx strux --version                        # should print a version
+npx strux --version                        # must print a version — do not continue without this
 cat strux.config.yaml                      # verify source globs and output dir
 ```
 
 Check `strux.config.yaml` — verify source globs include `pipelines/**/*.strux` and `openspec/specs/**/*.strux`, and output dir is `.openstrux/build`.
 
-If `npx strux` is not available, you can still write `.strux` files — the benchmark runner will attempt to compile them during apply. Focus on producing correct `.strux` source and gap-filling the TypeScript stubs.
+**The strux CLI is required.** `strux build` generates the TypeScript scaffolds that you will fill in — you must run it before writing any implementation code. If `npx strux` is not found, the setup has failed; stop and report the error.
 
 ## Step 3 — Write `.strux` source files
 
@@ -48,19 +48,21 @@ Read the functional specs (`openspec/specs/domain-model.md`, `openspec/specs/wor
 
 Use shorthand syntax. Leverage context cascade: panels should declare only the delta from context. Prefer named references (`@source`, `@target`) over inline config.
 
-## Step 4 — Build (if toolchain available)
+## Step 4 — Build
+
+Run `strux build` to compile your `.strux` source into TypeScript scaffolds:
 
 ```bash
 npx strux build --explain
 ```
 
-`--explain` shows what each panel compiles to. Verify zero error diagnostics. If errors occur, fix the `.strux` source and rebuild.
+`--explain` shows what each panel compiles to. Verify zero error diagnostics. If errors occur, fix the `.strux` source and rebuild until the build is clean.
 
-If `strux build` is not available, skip to Step 5 — the `.strux` files you wrote are still valuable output.
+The generated output in `.openstrux/build/` is the contract that the rest of the implementation must satisfy. **Do not write any TypeScript implementation until `strux build` succeeds.**
 
 ## Step 5 — Fill gaps
 
-After writing `.strux` files (and optionally running `strux build`), implement all remaining TypeScript stubs that the `.strux` source doesn't cover:
+After `strux build` succeeds, implement the stubs that the build output does not cover. Read the generated files in `.openstrux/build/` first — they define the exact types, interfaces, and function signatures you must implement:
 
 - **Prisma schema** (`prisma/schema.prisma`) — the `.strux` types inform but don't generate the Prisma schema
 - **Zod schemas** (`src/domain/schemas/index.ts`)

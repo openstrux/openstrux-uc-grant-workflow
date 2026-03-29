@@ -1,0 +1,10 @@
+{
+  "model": "claude-sonnet-4-6",
+  "provider": "anthropic",
+  "inputTokens": 0,
+  "outputTokens": 5800,
+  "turns": 0,
+  "retries": 0,
+  "exitSubtype": "success",
+  "timeSeconds": 0
+}

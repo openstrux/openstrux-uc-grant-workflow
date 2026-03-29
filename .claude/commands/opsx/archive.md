@@ -13,23 +13,23 @@ Archive a completed change in the experimental workflow.
 
 1. **If no change name provided, prompt for selection**
 
-   Run `openspec list --json` to get available changes. Use the **AskUserQuestion tool** to let the user select.
-
-   Show only active changes (not already archived).
-   Include the schema used for each change if available.
-
-   **IMPORTANT**: Do NOT guess or auto-select a change. Always let the user choose.
+   List available changes:
+   ```bash
+   ls openspec/changes/
+   ```
+   Use the **AskUserQuestion tool** to let the user select. Do NOT auto-select.
 
 2. **Check artifact completion status**
 
-   Run `openspec status --change "<name>" --json` to check artifact completion.
+   Check which artifacts exist:
+   ```bash
+   ls openspec/changes/<name>/
+   ls openspec/changes/<name>/specs/ 2>/dev/null
+   ```
+   For the spec-driven schema, expected artifacts are: `proposal.md`, `specs/`, `design.md`, `tasks.md`.
 
-   Parse the JSON to understand:
-   - `schemaName`: The workflow being used
-   - `artifacts`: List of artifacts with their status (`done` or other)
-
-   **If any artifacts are not `done`:**
-   - Display warning listing incomplete artifacts
+   **If any expected artifacts are missing:**
+   - Display warning listing missing artifacts
    - Prompt user for confirmation to continue
    - Proceed if user confirms
 
@@ -149,7 +149,7 @@ Target archive directory already exists.
 
 **Guardrails**
 - Always prompt for change selection if not provided
-- Use artifact graph (openspec status --json) for completion checking
+- Check artifact completion by listing `openspec/changes/<name>/` directly
 - Don't block archive on warnings - just inform and confirm
 - Preserve .openspec.yaml when moving to archive (it moves with the directory)
 - Show clear summary of what happened
