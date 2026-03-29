@@ -80,7 +80,7 @@ describe("Eligibility service (integration)", () => {
         primaryObjectiveIsRd: true,
         meetsEuropeanDimension: "not_applicable",
         requestedBudgetKEur: 50,
-        firstTimeApplicantInProgramme: false,
+        firstTimeApplicantInProgramme: true,
       },
     });
 
@@ -126,5 +126,7 @@ describe("Eligibility service (integration)", () => {
       where: { targetId: submissionId, eventType: "eligibility.checked" },
     });
     expect(events.length).toBeGreaterThan(0);
+    expect(events[0].actorId).toBeTruthy();
+    expect(events[0].targetType).toBe("Submission");
   });
 });

@@ -85,5 +85,6 @@ describe("Intake service (integration)", () => {
 
     expect(events.length).toBeGreaterThan(0);
     expect(events[0].eventType).toBe("submission.created");
+    expect(events[0].actorId).toBeTruthy();
   });
 });
