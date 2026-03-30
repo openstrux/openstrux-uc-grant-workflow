@@ -16,7 +16,7 @@ Required `.strux` files:
 
 #### Scenario: strux build attempted after writing source
 - **WHEN** `.strux` files have been written
-- **THEN** `npx strux build --explain` is run and any compile errors are fixed before gap-filling
+- **THEN** `node .openstrux/cli/strux.mjs build --explain` is run and any compile errors are fixed before gap-filling
 
 ### Requirement: Gap-fill after strux build
 After `strux build`, the system SHALL implement the remaining TypeScript stubs that the Openstrux toolchain does not generate. These gap-fills are hand-written TypeScript.

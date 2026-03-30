@@ -13,7 +13,11 @@ You are implementing the backend of a privacy-first grant review system. The sys
 
 - `src/app/` — Next.js frontend (complete, do not modify)
 - `tests/` — vitest tests as acceptance criteria (do not modify)
-- Contract stubs marked `@generated-stub` — replace with real implementations
+- Contract stubs marked `@generated-stub` in `src/` — replace with real implementations
 - `openspec/` — specifications and active changes defining all requirements
+
+## What does NOT exist yet
+
+- `prisma/` — you must create this directory, `prisma/schema.prisma`, and `prisma/seeds/seed.ts` from scratch (see Path Instructions for details)
 
 The tests are your acceptance criteria.

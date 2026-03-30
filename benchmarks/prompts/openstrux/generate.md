@@ -25,21 +25,17 @@ The Openstrux language reference is bundled locally in `openstrux-lang/`. Read i
 
 ## Step 2 — Bootstrap
 
-Verify the toolchain is available and the project config is correct:
-
-```bash
-npx strux --version
-```
-
-If `npx strux` fails, try the bundled CLI directly:
+The strux CLI is bundled at `.openstrux/cli/strux.mjs`. Verify it works:
 
 ```bash
 node .openstrux/cli/strux.mjs --version
 ```
 
-Read `strux.config.yaml` to verify source globs include `pipelines/**/*.strux` and `openspec/specs/**/*.strux`, and output dir is `.openstrux/build`.
+**The strux CLI is required.** If the command above fails, the setup has failed — stop and report the error before proceeding.
 
-**The strux CLI is required.** If both commands above fail, the setup has failed — stop and report the error before proceeding.
+Use `node .openstrux/cli/strux.mjs` for all strux commands (not `npx strux`).
+
+Read `strux.config.yaml` to verify source globs include `pipelines/**/*.strux` and `openspec/specs/**/*.strux`, and output dir is `.openstrux/build`.
 
 ## Step 3 — Write `.strux` source files
 
@@ -58,7 +54,7 @@ Use shorthand syntax. Leverage context cascade: panels should declare only the d
 Run `strux build` to compile your `.strux` source into TypeScript scaffolds:
 
 ```bash
-npx strux build --explain
+node .openstrux/cli/strux.mjs build --explain
 ```
 
 `--explain` shows what each panel compiles to. Verify zero error diagnostics. If errors occur, fix the `.strux` source and rebuild until the build is clean.
@@ -67,16 +63,23 @@ The generated output in `.openstrux/build/` is the contract that the rest of the
 
 ## Step 5 — Fill gaps
 
-After `strux build` succeeds, implement the stubs that the build output does not cover. Read the generated files in `.openstrux/build/` first — they define the exact types, interfaces, and function signatures you must implement:
+After `strux build` succeeds, implement the stubs that the build output does not cover. Read the generated files in `.openstrux/build/` first — they define the exact types, interfaces, and function signatures you must implement.
 
-- **Prisma schema** (`prisma/schema.prisma`) — the `.strux` types inform but don't generate the Prisma schema
+### Prisma schema and seed (new files — `prisma/` does not exist yet)
+
+The `prisma/` directory does not exist in the worktree — you must create it. The `.strux` `@type` definitions from Step 3 define the domain entities; translate them to Prisma models:
+
+- **`prisma/schema.prisma`** — create the full schema with models matching your `@type` names (snake_case tables, PascalCase models). The `.strux` types define the fields and relationships; Prisma-specific concerns (indexes, `@default`, `Json` fields, enums) are your responsibility.
+- **`prisma/seeds/seed.ts`** — create the seed script with dev fixtures. Consult `openspec/specs/access-policies.md` for canonical user records and `openspec/specs/domain-model.md` for the default Call record.
+
+### Remaining gap-fills (contract stubs exist — replace `@generated-stub` markers)
+
 - **Zod schemas** (`src/domain/schemas/index.ts`)
 - **Policy functions** (`src/policies/index.ts`) — `evaluateEligibility`, `createBlindedPacket`, `isValidTransition`, `getNextStatus`
 - **Service layer** (`src/server/services/submissionService.ts`, `eligibilityService.ts`)
 - **DAL** (`src/lib/dal.ts`) — `verifySession`
-- **Route handlers** (`src/app/api/intake/route.ts`, `src/app/api/eligibility/route.ts`)
+- **Route handlers** (`src/app/api/intake/route.ts`, `src/app/api/eligibility/route.ts`) — thin wrappers that delegate to strux-generated pipeline handlers
 - **Prisma client** (`src/lib/prisma.ts`)
-- **Seed** (`prisma/seeds/seed.ts`)
 
 The `.strux` source defines the domain model and data flows; the TypeScript gap-fills implement the contract stubs that tests import from.
 
