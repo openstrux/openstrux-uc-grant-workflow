@@ -28,13 +28,18 @@ The Openstrux language reference is bundled locally in `openstrux-lang/`. Read i
 Verify the toolchain is available and the project config is correct:
 
 ```bash
-npx strux --version                        # must print a version — do not continue without this
-cat strux.config.yaml                      # verify source globs and output dir
+npx strux --version
 ```
 
-Check `strux.config.yaml` — verify source globs include `pipelines/**/*.strux` and `openspec/specs/**/*.strux`, and output dir is `.openstrux/build`.
+If `npx strux` fails, try the bundled CLI directly:
 
-**The strux CLI is required.** `strux build` generates the TypeScript scaffolds that you will fill in — you must run it before writing any implementation code. If `npx strux` is not found, the setup has failed; stop and report the error.
+```bash
+node .openstrux/cli/strux.mjs --version
+```
+
+Read `strux.config.yaml` to verify source globs include `pipelines/**/*.strux` and `openspec/specs/**/*.strux`, and output dir is `.openstrux/build`.
+
+**The strux CLI is required.** If both commands above fail, the setup has failed — stop and report the error before proceeding.
 
 ## Step 3 — Write `.strux` source files
 

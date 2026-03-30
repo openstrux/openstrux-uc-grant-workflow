@@ -2,7 +2,7 @@
 
 ## Workflow
 
-Follow these steps **in order**. Each step uses an OpenSpec skill that guides you through the process. **Do not skip steps** — Steps 2 and 3 must produce actual files before you write any implementation code.
+Follow these steps **in order**. Each step uses an OpenSpec skill that guides you through the process. **Do not skip steps** — Steps 2 and 3 must produce actual files before you write any implementation code. Proceed autonomously through all steps without waiting for user input.
 
 ### Step 1 — Explore and understand
 
@@ -14,13 +14,13 @@ Run `/opsx:continue backend` to create `design.md`. Document:
 - Key technical decisions for your path (file structure, patterns, any path-specific choices)
 - How you will satisfy each acceptance criterion from the specs
 
-**STOP: do not proceed until `openspec/changes/backend/design.md` exists.**
+Once `openspec/changes/backend/design.md` exists, proceed immediately to Step 3.
 
 ### Step 3 — Generate your task plan (REQUIRED before implementation)
 
 Run `/opsx:continue backend` again to create `tasks.md`. Write your own task checklist covering all acceptance criteria. Use `TodoWrite` to mirror the checklist as active todos.
 
-**STOP: do not proceed until `openspec/changes/backend/tasks.md` exists.**
+Once `openspec/changes/backend/tasks.md` exists, proceed immediately to Step 4.
 
 ### Step 4 — Implement
 
