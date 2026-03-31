@@ -89,6 +89,7 @@ export const IntakeRequestSchema = z.object({
   email: z.string().email().optional(),
   country: z.string().min(1).optional(),
   organisation: z.string().min(1).optional(),
+  phoneNumber: z.string().min(1).optional(),
 });
 
 /** POST /api/intake — 201 response */

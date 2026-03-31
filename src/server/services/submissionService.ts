@@ -111,7 +111,7 @@ export async function submitProposal(
   });
 
   // 3. Create ApplicantIdentity if identity fields provided
-  if (input.legalName || input.email || input.country || input.organisation) {
+  if (input.legalName || input.email || input.country || input.organisation || input.phoneNumber) {
     await prisma.applicantIdentity.create({
       data: {
         submissionId: submission.id,
@@ -119,6 +119,7 @@ export async function submitProposal(
         email: input.email ?? "",
         country: input.country ?? "",
         organisation: input.organisation ?? "",
+        phoneNumber: input.phoneNumber,
       },
     });
   }
