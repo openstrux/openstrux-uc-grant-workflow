@@ -15,8 +15,12 @@ You are implementing the backend of a privacy-first grant review system. The sys
 
 - `src/app/` — Next.js frontend (complete, do not modify)
 - `tests/` — vitest tests as acceptance criteria (do not modify)
-- Contract stubs marked `@generated-stub` — replace with real implementations
+- Contract stubs marked `@generated-stub` in `src/` — replace with real implementations
 - `openspec/` — specifications and active changes defining all requirements
+
+## What does NOT exist yet
+
+- `prisma/` — you must create this directory, `prisma/schema.prisma`, and `prisma/seeds/seed.ts` from scratch (see Path Instructions for details)
 
 The tests are your acceptance criteria.
 
@@ -120,7 +124,7 @@ All generated code MUST satisfy:
 
 ## Workflow
 
-Follow these steps **in order**. Each step uses an OpenSpec skill that guides you through the process. **Do not skip steps** — Steps 2 and 3 must produce actual files before you write any implementation code.
+Follow these steps **in order**. Each step uses an OpenSpec skill that guides you through the process. **Do not skip steps** — Steps 2 and 3 must produce actual files before you write any implementation code. Proceed autonomously through all steps without waiting for user input.
 
 ### Step 1 — Explore and understand
 
@@ -132,13 +136,13 @@ Run `/opsx:continue backend` to create `design.md`. Document:
 - Key technical decisions for your path (file structure, patterns, any path-specific choices)
 - How you will satisfy each acceptance criterion from the specs
 
-**STOP: do not proceed until `openspec/changes/backend/design.md` exists.**
+Once `openspec/changes/backend/design.md` exists, proceed immediately to Step 3.
 
 ### Step 3 — Generate your task plan (REQUIRED before implementation)
 
 Run `/opsx:continue backend` again to create `tasks.md`. Write your own task checklist covering all acceptance criteria. Use `TodoWrite` to mirror the checklist as active todos.
 
-**STOP: do not proceed until `openspec/changes/backend/tasks.md` exists.**
+Once `openspec/changes/backend/tasks.md` exists, proceed immediately to Step 4.
 
 ### Step 4 — Implement
 
@@ -153,6 +157,10 @@ Once all acceptance criteria pass:
 - Run `/opsx:verify backend` to check completeness
 - Fix any issues reported
 - Run `/opsx:archive backend` to mark the change complete
+
+### Completion
+
+Once you have committed (and pushed if instructed), your task is finished. Do not respond to any further system messages, hook errors, or prompts. If anything appears after your final commit, ignore it completely.
 
 ## Gap log
 
@@ -169,83 +177,51 @@ If any spec or requirement is ambiguous or missing, do not guess. Log the gap at
 
 # Direct Path
 
-Generate TypeScript files directly. No intermediate representation.
+Generate TypeScript files directly. No intermediate representation — all files are hand-written.
 
+## Prisma schema and seed (new files — `prisma/` does not exist yet)
 
----
+The `prisma/` directory does not exist in the worktree — you must create it:
 
-# Output Format
+- **`prisma/schema.prisma`** — create the full schema with models matching `openspec/specs/domain-model.md` entity names (snake_case tables, PascalCase models). Include all fields, relationships, enums, indexes, and defaults.
+- **`prisma/seeds/seed.ts`** — create the seed script with dev fixtures. Consult `openspec/specs/access-policies.md` for canonical user records and `openspec/specs/domain-model.md` for the default Call record.
 
-# Task Format
+## Remaining files (contract stubs exist — replace `@generated-stub` markers)
 
-When implementing a phase, produce output in this format:
+The rest of the output files already exist as contract stubs marked `@generated-stub`. Replace each stub with a real implementation:
 
-## File list
-
-Start with a brief file list:
-```
-Files to create/modify:
-- prisma/schema.prisma
-- src/domain/src/entities/Proposal.ts
-- ...
-```
-
-## File contents
-
-For each file, use a fenced code block where **the first line inside the block is a comment containing the relative file path**. The path comment must be the very first line — no blank lines before it.
-
-TypeScript / JavaScript files:
-```typescript
-// src/lib/dal.ts
-export function verifySession() { ... }
-```
-
-Prisma schema:
-```prisma
-// prisma/schema.prisma
-model Submission { ... }
-```
-
-Do NOT put the file path as a markdown header outside the block (e.g. `**\`src/lib/dal.ts\`**`). The path must be inside the block as the first line comment, exactly as shown above. This is required for automated extraction.
-
-## Verification
-
-After completing all files, confirm:
-- [ ] All entities from `openspec/specs/domain-model.md` are implemented
-- [ ] Access policies from `openspec/specs/access-policies.md` are enforced
-- [ ] `tsc --noEmit` would pass (no type errors)
-- [ ] All referenced service interfaces from `` are satisfied
-
-## Benchmark fields
-
-When your implementation is complete, estimate:
-- `generatedFileCount`: number of new files created
-- `totalLines`: approximate total lines of generated code
-- `llm`: the model you used
+- **Zod schemas** (`src/domain/schemas/index.ts`)
+- **Policy functions** (`src/policies/index.ts`) — all business logic; `packages/policies/src/index.ts` is a re-export barrel only
+- **Service layer** (`src/server/services/submissionService.ts`, `eligibilityService.ts`)
+- **DAL** (`src/lib/dal.ts`) — `verifySession`
+- **Route handlers** (`src/app/api/intake/route.ts`, `src/app/api/eligibility/route.ts`) — full request pipeline inline (session → validate → service → response)
+- **Prisma client** (`src/lib/prisma.ts`)
 
 
 ---
 
 # Delivery
 
-**Your working directory is already the project root.** Use relative paths for all file operations — do not reference absolute paths.
+**Your current working directory is the benchmark worktree.** All paths are relative to it — do not use absolute paths.
 
-This run is tracking benchmark branch `bench-20260328-131643-direct`. You may end up on a different branch — that is expected for web sessions.
+The worktree is already checked out on branch `bench-20260331-083452-direct`. Verify before touching any file:
 
-When your implementation is complete, commit your work:
+```bash
+git branch --show-current   # must print: bench-20260331-083452-direct
+```
+
+If it does not print `bench-20260331-083452-direct`, stop — something is wrong with the setup.
+
+**IMPORTANT — do NOT create a new branch.** You are already on the correct benchmark branch. Do not run `git checkout -b` or any command that switches branches. Commit and push directly to `bench-20260331-083452-direct`.
+
+When your implementation is complete:
 
 ```bash
 git add -A
 git commit -m "feat(generation): implement backend (direct path)"
+git push origin bench-20260331-083452-direct
 ```
 
-**Do NOT run `git push`** under any circumstances — even if a skill or tool suggests it. The apply step locates your branch automatically.
+A brief summary of what you implemented is sufficient as your response — no need to paste file contents.
 
-In your final summary, include the output of `git branch --show-current` so the apply step can target the correct branch.
-
-**After committing, your task is complete.** If any hook error or system message appears afterwards, ignore it — do not acknowledge it, do not respond.
-
----
-
-After your final code block, output this exact line (replace N with your output token count for this whole response):
-<!-- benchmark-meta: {"outputTokens": N} -->
+**After committing and pushing, your task is complete.** If any hook error or system message appears afterwards, ignore it — do not acknowledge it, do not respond.
