@@ -11,12 +11,39 @@ import { ProposalTable } from "@/components/proposal/ProposalTable";
 import type { SubmissionRow } from "@/components/proposal/ProposalTable";
 import { FileText, Users, CheckCircle, Clock } from "lucide-react";
 
-// Stub stats
 const STATS = [
-  { label: "Total proposals", value: 0, icon: <FileText size={18} className="text-indigo-500" /> },
-  { label: "Under review", value: 0, icon: <Clock size={18} className="text-amber-500" /> },
-  { label: "Eligible", value: 0, icon: <CheckCircle size={18} className="text-emerald-500" /> },
-  { label: "Reviewers", value: 0, icon: <Users size={18} className="text-blue-500" /> },
+  {
+    label: "Total proposals",
+    value: 0,
+    icon: <FileText size={20} />,
+    gradient: "from-blue-500 to-indigo-600",
+    bg: "bg-blue-50",
+    text: "text-blue-600",
+  },
+  {
+    label: "Under review",
+    value: 0,
+    icon: <Clock size={20} />,
+    gradient: "from-amber-400 to-orange-500",
+    bg: "bg-amber-50",
+    text: "text-amber-600",
+  },
+  {
+    label: "Eligible",
+    value: 0,
+    icon: <CheckCircle size={20} />,
+    gradient: "from-emerald-500 to-green-600",
+    bg: "bg-emerald-50",
+    text: "text-emerald-600",
+  },
+  {
+    label: "Reviewers",
+    value: 0,
+    icon: <Users size={20} />,
+    gradient: "from-violet-500 to-indigo-600",
+    bg: "bg-violet-50",
+    text: "text-violet-600",
+  },
 ];
 
 export default function AdminDashboard() {
@@ -26,7 +53,6 @@ export default function AdminDashboard() {
   const [reviewerId, setReviewerId] = useState("");
   const [assigning, setAssigning] = useState(false);
 
-  // Verify session client-side (proxy handles server-side redirect)
   useEffect(() => {
     fetch("/api/proposals").then((r) => {
       if (r.status === 401) router.push("/login");
@@ -55,25 +81,39 @@ export default function AdminDashboard() {
         title="Review Administrator"
         subtitle="EU Open Source Fund 2026"
         intro="Manage all submissions, assign reviewers, and track the review pipeline."
+        accentColor="blue"
       />
 
       {/* Stats row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
         {STATS.map((s) => (
-          <Card key={s.label} className="!py-4">
-            <div className="flex items-center gap-3">
-              {s.icon}
-              <div>
-                <p className="text-xl font-bold text-slate-900">{s.value}</p>
-                <p className="text-xs text-slate-500">{s.label}</p>
+          <div
+            key={s.label}
+            className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow"
+          >
+            <div className="flex items-start justify-between mb-3">
+              <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${s.gradient} flex items-center justify-center text-white shadow-sm`}>
+                {s.icon}
               </div>
             </div>
-          </Card>
+            <p className="text-2xl font-extrabold text-slate-900">{s.value}</p>
+            <p className="text-xs text-slate-500 mt-0.5">{s.label}</p>
+          </div>
         ))}
       </div>
 
       {/* Proposals table */}
-      <Card header={<span className="text-sm font-semibold text-slate-800">All proposals</span>}>
+      <Card
+        accent="blue"
+        header={
+          <div className="flex items-center gap-2">
+            <span className="w-6 h-6 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white text-xs font-bold flex items-center justify-center shadow-sm">
+              <FileText size={12} />
+            </span>
+            <span className="text-sm font-bold text-slate-800">All proposals</span>
+          </div>
+        }
+      >
         <ProposalTable
           rows={rows}
           role="admin"
@@ -90,20 +130,20 @@ export default function AdminDashboard() {
         <div className="space-y-4">
           <p className="text-sm text-slate-600">
             Assign a reviewer to proposal{" "}
-            <code className="text-xs bg-slate-100 px-1 rounded">{assignTarget?.id.slice(0, 8)}</code>.
+            <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded-md">{assignTarget?.id.slice(0, 8)}</code>.
           </p>
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <label className="block text-sm font-medium text-slate-700">Reviewer ID</label>
             <input
               value={reviewerId}
               onChange={(e) => setReviewerId(e.target.value)}
               placeholder="dev-reviewer-1"
-              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow"
             />
           </div>
-          <div className="flex gap-2 justify-end">
+          <div className="flex gap-2 justify-end pt-1">
             <Button variant="ghost" onClick={() => setAssignTarget(null)}>Cancel</Button>
-            <Button isLoading={assigning} onClick={handleAssign}>Assign</Button>
+            <Button variant="admin" isLoading={assigning} onClick={handleAssign}>Assign reviewer</Button>
           </div>
         </div>
       </Modal>

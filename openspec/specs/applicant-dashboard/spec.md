@@ -13,16 +13,18 @@ The application SHALL render `/dashboard/applicant` only for sessions with role 
 
 ---
 
-### Requirement: Applicant dashboard shows current proposal status
-The application SHALL display a status card with the proposal title, current `ProposalStatus` rendered as a `StatusBadge`, and submitted date. If no proposal exists for the applicant, an appropriate empty state is shown with a link to `/submit`.
+### Requirement: Applicant dashboard fetches and shows current proposal status
+The application SHALL load the applicant's proposal by reading `session.submissionId` and calling `getSubmission(session.submissionId)`. The page MUST NOT hardcode `proposal = null`. It SHALL display a status card with the proposal title, current `ProposalStatus` rendered as a `StatusBadge`, and submitted date. If `session.submissionId` is absent or `getSubmission` returns `null`, an appropriate empty state is shown with a link to `/submit`.
+
+**Critical constraint:** The proposal data MUST be fetched dynamically from the database using `session.submissionId`. Any implementation that hardcodes `null` or skips the database call violates this requirement and will cause submitted proposals to be invisible to applicants.
 
 #### Scenario: Proposal status card renders for existing proposal
-- **WHEN** the applicant has a submitted proposal
+- **WHEN** the applicant session contains a `submissionId` and `getSubmission(submissionId)` returns a record
 - **THEN** the title, StatusBadge, and submitted date are visible
 
 #### Scenario: Empty state is shown when no proposal exists
-- **WHEN** the applicant has no proposal on record
-- **THEN** a prompt with a link to `/submit` is displayed
+- **WHEN** the applicant session has no `submissionId`, or `getSubmission` returns `null`
+- **THEN** a prompt with a link to `/submit` is displayed and `getSubmission` is either not called or returns null
 
 ---
 

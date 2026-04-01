@@ -27,19 +27,25 @@ The application SHALL clear the `session` cookie when `POST /api/auth/logout` is
 ---
 
 ### Requirement: Account and submission are created on registration
-The application SHALL accept contact info, project info, and a password via `POST /api/auth/register`, create an applicant user account (stubbed), create a submission (stubbed), and set a session cookie for the new user.
+The application SHALL accept contact info, project info, and a password via `POST /api/auth/register`, persist the proposal by calling `submitProposal()`, and set a session cookie for the new applicant that includes the resulting `submissionId`. The session cookie MUST contain `{ userId, role, submissionId }` so that server components can retrieve the applicant's proposal without an additional lookup.
 
-#### Scenario: Valid registration creates session and returns 201
-- **WHEN** a POST request is made to `/api/auth/register` with all required fields and matching passwords
-- **THEN** the response is 201, a session cookie is set for the new applicant, and the body contains `{ userId, submissionId }`
+**Critical constraint:** `submitProposal()` MUST be called before the session is created. The `submissionId` returned by `submitProposal()` MUST be stored in the session JWT as the third argument to `createSession(userId, role, submissionId)`. Omitting this prevents the applicant dashboard from displaying the proposal.
 
-#### Scenario: Duplicate email returns 409
-- **WHEN** a POST request is made to `/api/auth/register` with an email already registered
-- **THEN** the response is 409 with body `{ error: "Email already registered" }`
+#### Scenario: Valid registration persists proposal and creates session
+- **WHEN** a POST request is made to `/api/auth/register` with all required fields
+- **THEN** `submitProposal()` is called with the proposal fields from the request body, the response is 201, a session cookie is set for the new applicant with `submissionId` embedded, and the body contains `{ userId, submissionId }`
 
-#### Scenario: Password mismatch returns 400
-- **WHEN** `password` and `confirmPassword` do not match
-- **THEN** the response is 400 with a validation error body
+#### Scenario: Session JWT contains submissionId after registration
+- **WHEN** registration succeeds and a session cookie is issued
+- **THEN** decoding the JWT reveals `{ userId, role: "applicant", submissionId: "<id>" }` where `submissionId` matches the value in the 201 response body
+
+#### Scenario: submitProposal is NOT called when validation fails
+- **WHEN** the request body is invalid (missing required fields, bad email, short password, etc.)
+- **THEN** `submitProposal()` is not called and the response is 400
+
+#### Scenario: submitProposal is NOT called for duplicate email
+- **WHEN** the email is already registered
+- **THEN** `submitProposal()` is not called and the response is 409 with body `{ error: "Email already registered" }`
 
 ---
 
@@ -61,11 +67,15 @@ The application SHALL use `src/proxy.ts` to enforce authentication on all `/dash
 ---
 
 ### Requirement: Session is readable in server components and API routes
-The application SHALL expose a `getSession()` helper that reads and decrypts the `session` cookie from the current request context and returns `{ userId, role } | null`.
+The application SHALL expose a `getSession()` helper that reads and decrypts the `session` cookie from the current request context and returns `{ userId, role, submissionId? } | null`. The `submissionId` field is present for `applicant` sessions and absent for all other roles.
 
-#### Scenario: Valid session cookie returns principal
-- **WHEN** `getSession()` is called in a server context with a valid session cookie present
-- **THEN** it returns `{ userId: string, role: Role }`
+#### Scenario: Valid session cookie returns principal with submissionId for applicants
+- **WHEN** `getSession()` is called in a server context with a valid applicant session cookie
+- **THEN** it returns `{ userId: string, role: "applicant", submissionId: string }`
+
+#### Scenario: Valid session cookie returns principal without submissionId for staff
+- **WHEN** `getSession()` is called with a valid session cookie for a non-applicant role
+- **THEN** it returns `{ userId: string, role: Role }` with no `submissionId` field
 
 #### Scenario: Missing or expired cookie returns null
 - **WHEN** `getSession()` is called with no cookie or an expired JWT

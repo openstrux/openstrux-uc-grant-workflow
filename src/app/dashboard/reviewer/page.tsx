@@ -54,33 +54,49 @@ export default function ReviewerDashboard() {
         title="Review queue"
         subtitle="Blinded review — applicant identities are hidden"
         intro="Review assigned proposals and submit your recommendation."
+        accentColor="blue"
       />
 
       <div className="grid lg:grid-cols-2 gap-6">
-        <Card header={<span className="text-sm font-semibold text-slate-800">Assigned proposals</span>}>
+        <Card
+          accent="blue"
+          header={
+            <span className="text-sm font-bold text-slate-800">Assigned proposals</span>
+          }
+        >
           <ProposalTable rows={rows} role="reviewer" onSelect={setSelected} />
         </Card>
 
         {selected ? (
-          <Card header={
-            <span className="text-sm font-semibold text-slate-800">
-              Review: <code className="text-xs font-normal">{selected.id.slice(0, 8)}</code>
-            </span>
-          }>
-            <form onSubmit={handleReviewSubmit} className="space-y-4">
-              <div className="space-y-1">
-                <label className="block text-sm font-medium text-slate-700">Notes <span className="text-red-500">*</span></label>
+          <Card
+            accent="blue"
+            header={
+              <span className="text-sm font-bold text-slate-800">
+                Review:{" "}
+                <code className="text-xs font-normal bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">
+                  {selected.id.slice(0, 8)}
+                </code>
+              </span>
+            }
+          >
+            <form onSubmit={handleReviewSubmit} className="space-y-5">
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-slate-700">
+                  Notes <span className="text-red-500">*</span>
+                </label>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   rows={6}
                   required
                   placeholder="Provide your review notes…"
-                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow resize-none"
                 />
               </div>
-              <div className="space-y-1">
-                <label className="block text-sm font-medium text-slate-700">Recommendation <span className="text-red-500">*</span></label>
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-slate-700">
+                  Recommendation <span className="text-red-500">*</span>
+                </label>
                 <Select
                   value={recommendation}
                   onChange={setRecommendation}
@@ -88,9 +104,16 @@ export default function ReviewerDashboard() {
                   placeholder="Select recommendation…"
                 />
               </div>
-              <div className="flex gap-2 justify-end">
-                <Button variant="ghost" type="button" onClick={() => setSelected(null)}>Cancel</Button>
-                <Button type="submit" isLoading={submitting} disabled={!notes || !recommendation}>
+              <div className="flex gap-2 justify-end pt-1">
+                <Button variant="ghost" type="button" onClick={() => setSelected(null)}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="admin"
+                  type="submit"
+                  isLoading={submitting}
+                  disabled={!notes || !recommendation}
+                >
                   Submit review
                 </Button>
               </div>
@@ -98,8 +121,12 @@ export default function ReviewerDashboard() {
           </Card>
         ) : (
           <Card>
-            <div className="text-center py-8 text-slate-400 text-sm">
-              Select a proposal to review
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
+                <span className="text-blue-400 text-2xl">←</span>
+              </div>
+              <p className="text-sm font-medium text-slate-600">Select a proposal to review</p>
+              <p className="text-xs text-slate-400 mt-1">Pick one from the queue on the left</p>
             </div>
           </Card>
         )}

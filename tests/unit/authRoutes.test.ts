@@ -24,6 +24,11 @@ vi.mock("bcryptjs", () => ({
   default: { compare: vi.fn() },
 }));
 
+// Register now calls submitProposal — mock it so tests stay DB-free
+vi.mock("../../src/server/services/submissionService", () => ({
+  submitProposal: vi.fn().mockResolvedValue({ submissionId: "sub-mock", status: "submitted" }),
+}));
+
 import { POST as loginPOST } from "../../src/app/api/auth/login/route";
 import { POST as logoutPOST } from "../../src/app/api/auth/logout/route";
 import { POST as registerPOST } from "../../src/app/api/auth/register/route";
