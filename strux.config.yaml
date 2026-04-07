@@ -5,7 +5,7 @@ target:
   base: typescript@~5.5
   framework: next@^16.0
   orm: prisma@^6.0
-  validation: zod@^3.23
+  validation: zod@^4.0.0
   runtime: node@>=20
 
 source:

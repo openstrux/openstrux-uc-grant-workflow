@@ -9,6 +9,7 @@ export interface SessionPayload {
   userId: string;
   role: Role;
   expiresAt: number;
+  submissionId?: string;
 }
 
 const COOKIE_NAME = "session";
@@ -37,9 +38,9 @@ export async function decrypt(cookie: string): Promise<SessionPayload | null> {
   }
 }
 
-export async function createSession(userId: string, role: Role): Promise<void> {
+export async function createSession(userId: string, role: Role, submissionId?: string): Promise<void> {
   const expiresAt = Date.now() + EXPIRY_DAYS * 24 * 60 * 60 * 1000;
-  const token = await encrypt({ userId, role, expiresAt });
+  const token = await encrypt({ userId, role, expiresAt, submissionId });
   const cookieStore = await cookies();
   cookieStore.set(COOKIE_NAME, token, {
     httpOnly: true,
